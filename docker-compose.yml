@@ -1,0 +1,39 @@
+services:
+  # --- ROS 2 → WebSocket bridge ---
+  rosbridge:
+    image: ros:humble
+    command: >
+      bash -c "
+        apt update &&
+        apt install -y ros-humble-rosbridge-server &&
+        ros2 launch rosbridge_server rosbridge_websocket_launch.xml
+      "
+    networks: [rimco]
+    expose: [9090]
+
+  # --- Dummy publishers for local dev ---
+  dummies:
+    image: ros:humble
+    volumes:
+      - ./ros_dummies:/ros_dummies
+    command: >
+      bash -c "
+        source /opt/ros/humble/setup.bash &&
+        python3 /ros_dummies/diagnostic_heartbeat.py
+      "
+    networks: [rimco]
+    depends_on: [rosbridge]
+
+  # --- React dev server (hot-reload) ---
+  ui:
+    build: ./ui
+    volumes:
+      - ./ui:/app
+    ports:
+      - "5173:5173"
+    networks: [rimco]
+    depends_on: [rosbridge]
+
+networks:
+  rimco:
+
