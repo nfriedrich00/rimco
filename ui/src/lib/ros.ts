@@ -1,6 +1,8 @@
 import ROSLIB from "roslib";
 import React from "react";
 
+const defaultURL = `ws://${window.location.hostname}:9090`;
+
 const ros = new ROSLIB.Ros({
   url: import.meta.env.VITE_ROSBRIDGE_URL ?? "ws://localhost:9090",
 });
