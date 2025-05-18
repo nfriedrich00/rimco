@@ -7,24 +7,24 @@ import { useRimco } from "../store/useRimcoStore";
 
 // state hook
 function useFix(): Fix {
-  const rimco = useRimco();
-  const [fix, setFix] = useState<Fix>({
+  const { lastFix, setFix, pushTail } = useRimco();
+  const [fix, setFix_dep] = useState<Fix>({
     lat: 50.92570234902536,
     lon: 13.331672374817645,
     yaw: 0,
   });
 
   useTopic<any>("/demo/fix","sensor_msgs/msg/NavSatFix", (msg)=>{
-    rimco.setFix(msg.latitude, msg.longitude, rimco.lastFix?.yaw ?? 0);
-    rimco.pushTail([msg.latitude, msg.longitude]);
+    setFix(msg.latitude, msg.longitude, lastFix?.yaw ?? 0);
+    pushTail([msg.latitude, msg.longitude]);
   });
   useTopic<any>("/demo/odom","nav_msgs/msg/Odometry", (msg)=>{
     const { x,y,z,w } = msg.pose.pose.orientation;
     const yaw = Math.atan2(2*(w*z+x*y), 1-2*(y*y+z*z));
-    if (rimco.lastFix) rimco.setFix(rimco.lastFix.lat, rimco.lastFix.lon, yaw);
+    if (lastFix) setFix(lastFix.lat, lastFix.lon, yaw);
   });
 
-  return fix;
+  return lastFix;
 }
 
 export default function ManualControl() {
