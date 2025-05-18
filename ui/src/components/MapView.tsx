@@ -1,33 +1,28 @@
 import { MapContainer, TileLayer, Polyline } from "react-leaflet";
-import React from "react";
 import { useEffect, useRef, useState } from "react";
 import { useTopic } from "../lib/ros";
 import L from "leaflet";
 import ArrowMarker from "./ArrowMarker"
+import { useRimco } from "../store/useRimcoStore";
 
 type Fix = { lat: number; lon: number };
 
-const DEFAULT_POS: [number, number] = [50.92570234902536, 13.331672374817645];
-
-const TAIL_LEN = 200;
-
 
 export default function MapView({ fix }: { fix: Fix }) {
-  const [path, setPath] = useState<[number, number][]>([]);
-  const [latLon, setLL] = useState<[number, number]>(DEFAULT_POS);
+  const { lastFix, tail, pushTail, setFix } = useRimco();
+  if (!lastFix) return <p className="text-sm">Waiting for fix…</p>;
+
+  const [latLon, setLL] = useState<[number, number]>([lastFix.lat, lastFix.lon]);
   const [yaw, setYaw] = useState(0);
   const mapRef = useRef<L.Map>(null);
 
-  useEffect(() => {
-    const last = path[path.length - 1];
-    if (!last || last[0] !== fix.lat || last[1] !== fix.lon) {
-      setPath((prev) => [...prev, [fix.lat, fix.lon]].slice(-TAIL_LEN));
-    }
-  }, [fix, path]);
+  const TAIL_LEN = 3600;
+
 
   // NavSatFix
   useTopic<any>("/demo/fix", "sensor_msgs/msg/NavSatFix", (msg) => {
-    setLL([msg.latitude, msg.longitude]);
+    setFix(msg.latitude, msg.longitude, lastFix?.yaw ?? 0);
+    pushTail([msg.latitude,msg.longitude], TAIL_LEN);
   });
 
   // Odometry yaw
@@ -48,14 +43,14 @@ export default function MapView({ fix }: { fix: Fix }) {
 
   return (
     <MapContainer
-      center={DEFAULT_POS}
+      center={[lastFix.lat,lastFix.lon]}
       zoom={18}
       style={{ height: "60vh", minHeight: "400px", width: "100%" }}
       whenCreated={(m) => (mapRef.current = m)}
     >
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
-      <Polyline positions={path} pathOptions={{ color: "#1e90ff" }} />
-      <ArrowMarker lat={latLon[0]} lon={latLon[1]} yaw={yaw} />
+      <Polyline positions={tail} pathOptions={{ color: "#1e90ff" }} />
+      <ArrowMarker lat={lastFix.lat} lon={lastFix.lon} yaw={yaw} />
     </MapContainer>
   );
 }

@@ -1,6 +1,3 @@
-import { useEffect, useState } from "react";
-
-/** Maps DiagnosticStatus.level -> Tailwind colour */
 const levelColour: Record<number, string> = {
   0: "bg-ok",        // OK
   1: "bg-warn",      // WARN
@@ -27,7 +24,7 @@ export default function StatusCard({ data }: { data: ComponentStatus }) {
     <div className="rounded-lg shadow px-4 py-3 bg-white w-48">
       <h3 className="text-sm mb-2 truncate">{data.name}</h3>
       <div
-        className={`mx-auto h-8 w-8 rounded-full ${colour} border border-gray-400`}
+        className={`mx-auto h-8 w-8 rounded-full ${colour}`}
       />
       <p className="mt-1 text-center text-xs text-gray-600">
         {stale
@@ -39,4 +36,3 @@ export default function StatusCard({ data }: { data: ComponentStatus }) {
     </div>
   );
 }
-

@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from "react";
 import { useTopic } from "../lib/ros";
 import StatusCard from "../components/StatusCard";
 import type { ComponentStatus } from "../components/StatusCard";
+import { useRimco } from "../store/useRimcoStore";
 
 /**
  * Holds latest status for each component.
@@ -20,7 +21,8 @@ const useMonitoringData = () => {
       message: msg.message,
       lastUpdate: Date.now(),
     };
-    mapRef.current.set(msg.name, entry);
+    useRimco.getState().upsertComponent(msg.name, msg.level)
+    ////mapRef.current.set(msg.name, entry);
     // batch repaint via requestAnimationFrame
     requestAnimationFrame(() => forceRender((x) => x + 1));
   });
@@ -38,8 +40,8 @@ const useMonitoringData = () => {
 };
 
 export default function Monitoring() {
-  const components = useMonitoringData();
-
+  useMonitoringData();
+  const components = Object.values(useRimco((s) => s.components));
   // simple two-column wrap; swap for react-grid-layout later
   return (
     <div className="p-6 flex flex-wrap gap-4">
@@ -49,4 +51,3 @@ export default function Monitoring() {
     </div>
   );
 }
-

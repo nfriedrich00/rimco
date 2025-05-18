@@ -1,26 +1,27 @@
 import { useState } from "react";
 import MapView from "../components/MapView";
 import type { Fix } from "../components/MapView";
-import ControlPad from "../components/ControlPad";
 import { useTopic } from "../lib/ros";
 import Joystick from "../components/Joystick";
+import { useRimco } from "../store/useRimcoStore";
 
 // state hook
 function useFix(): Fix {
+  const rimco = useRimco();
   const [fix, setFix] = useState<Fix>({
     lat: 50.92570234902536,
     lon: 13.331672374817645,
     yaw: 0,
   });
 
-  useTopic<any>("/demo/fix", "sensor_msgs/msg/NavSatFix", (msg) =>
-    setFix((f) => ({ ...f, lat: msg.latitude, lon: msg.longitude })),
-  );
-  useTopic<any>("/demo/odom", "nav_msgs/msg/Odometry", (msg) => {
-    // yaw from quaternion
-    const { x, y, z, w } = msg.pose.pose.orientation;
-    const yaw = Math.atan2(2.0 * (w * z + x * y), 1 - 2 * (y * y + z * z));
-    setFix((f) => ({ ...f, yaw }));
+  useTopic<any>("/demo/fix","sensor_msgs/msg/NavSatFix", (msg)=>{
+    rimco.setFix(msg.latitude, msg.longitude, rimco.lastFix?.yaw ?? 0);
+    rimco.pushTail([msg.latitude, msg.longitude]);
+  });
+  useTopic<any>("/demo/odom","nav_msgs/msg/Odometry", (msg)=>{
+    const { x,y,z,w } = msg.pose.pose.orientation;
+    const yaw = Math.atan2(2*(w*z+x*y), 1-2*(y*y+z*z));
+    if (rimco.lastFix) rimco.setFix(rimco.lastFix.lat, rimco.lastFix.lon, yaw);
   });
 
   return fix;
@@ -47,4 +48,3 @@ export default function ManualControl() {
     </div>
   );
 }
-
