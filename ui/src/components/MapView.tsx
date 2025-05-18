@@ -1,30 +1,37 @@
-import { MapContainer, TileLayer, Marker, Popup } from "react-leaflet";
+import { MapContainer, TileLayer, Popup } from "react-leaflet";
 import { useEffect, useRef, useState } from "react";
 import { useTopic } from "../lib/ros";
 import L from "leaflet";
-import { defaultIcon } from "../leafletIcons";
+import ArrowMarker from "./ArrowMarker";
 
-/** origin Dresden Airport */
-const DEFAULT_POS: [number, number] = [51.13121833895035, 13.7658776013342];
+/** start pos */
+const DEFAULT_POS: [number, number] = [50.92570234902536, 13.331672374817645];
 
-export default function MapView({
-  topic = "/demo/fix",
-}: {
-  topic?: string;
-}) {
+export default function MapView() {
   const mapRef = useRef<L.Map>(null);
-  const [pos, setPos] = useState<[number, number]>(DEFAULT_POS);
+  const [latLon, setLL] = useState<[number, number]>(DEFAULT_POS);
+  const [yaw, setYaw] = useState(0);
 
-  useTopic<any>(topic, "sensor_msgs/msg/NavSatFix", (msg) => {
-    setPos([msg.latitude, msg.longitude]);
+  // NavSatFix
+  useTopic<any>("/demo/fix", "sensor_msgs/msg/NavSatFix", (msg) => {
+    setLL([msg.latitude, msg.longitude]);
   });
 
-  // centre map on new fix
+  // Odometry yaw
+  useTopic<any>("/demo/odom", "nav_msgs/msg/Odometry", (msg) => {
+    const { x, y, z, w } = msg.pose.pose.orientation;
+    const t3 = 2 * (w * z + x * y);
+    const t4 = 1 - 2 * (y * y + z * z);
+    // ROS2 uses ENU while leaflet expects NED.
+    const rosYaw = Math.atan2(t3, t4);
+    const leafletHeading = -rosYaw + Math.PI / 2;
+    setYaw(leafletHeading);
+  });
+
+  // auto-centre
   useEffect(() => {
-    if (mapRef.current) {
-      mapRef.current.setView(pos);
-    }
-  }, [pos]);
+    mapRef.current?.setView(latLon);
+  }, [latLon]);
 
   return (
     <MapContainer
@@ -33,15 +40,13 @@ export default function MapView({
       style={{ height: "60vh", minHeight: "400px", width: "100%" }}
       whenCreated={(m) => (mapRef.current = m)}
     >
-      <TileLayer
-        url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-        attribution='© <a href="https://osm.org/copyright">OpenStreetMap</a> contributors'
-      />
-      <Marker position={pos} icon={defaultIcon}>
-        <Popup>
-          Lat&nbsp;{pos[0].toFixed(6)}<br />Lon&nbsp;{pos[1].toFixed(6)}
-        </Popup>
-      </Marker>
+      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <ArrowMarker lat={latLon[0]} lon={latLon[1]} yaw={yaw} />
+      <Popup position={latLon}>
+        Lat&nbsp;{latLon[0].toFixed(6)}
+        <br />
+        Lon&nbsp;{latLon[1].toFixed(6)}
+      </Popup>
     </MapContainer>
   );
 }

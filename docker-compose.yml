@@ -11,7 +11,6 @@ services:
     networks: [rimco]
     ports:
       - "9090:9090"
-      #expose: [9090]
 
   # --- Dummy publishers for local dev ---
   dummies:
@@ -23,7 +22,8 @@ services:
         source /opt/ros/humble/setup.bash &&
         python3 /ros_dummies/diagnostic_heartbeat.py &
         python3 /ros_dummies/bool_beacon.py &
-        python3 /ros_dummies/navsat_circle.py
+        python3 /ros_dummies/navsat_circle.py &
+        python3 /ros_dummies/odom_circle.py
       "
     networks: [rimco]
     depends_on: [rosbridge]
@@ -42,4 +42,3 @@ services:
 
 networks:
   rimco:
-
