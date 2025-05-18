@@ -3,12 +3,13 @@ import MapView from "../components/MapView";
 import type { Fix } from "../components/MapView";
 import ControlPad from "../components/ControlPad";
 import { useTopic } from "../lib/ros";
+import Joystick from "../components/Joystick";
 
 // state hook
 function useFix(): Fix {
   const [fix, setFix] = useState<Fix>({
-    lat: 51.13121833895035,
-    lon: 13.7658776013342,
+    lat: 50.92570234902536,
+    lon: 13.331672374817645,
     yaw: 0,
   });
 
@@ -33,7 +34,7 @@ export default function ManualControl() {
       <MapView fix={fix} />
 
       <div className="space-y-4">
-        <ControlPad />
+        <Joystick/>
         <div className="rounded-lg bg-white shadow p-3 w-48">
           <h3 className="text-sm font-semibold mb-2">Coordinates</h3>
           <p className="text-sm monospace">
