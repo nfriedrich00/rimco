@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import MapView from "../components/MapView";
 import type { Fix } from "../components/MapView";
 import { useRimco } from "../store/useRimcoStore";
@@ -18,86 +18,131 @@ const defaultIcon = L.icon({
   iconAnchor: [12, 41],
 });
 
-/* ---------- robot pose hook (as before) ---------- */
-function useFix(): Fix {
+function useFix(): Fix | null {
   const { lastFix, setFix, pushTail } = useRimco();
-  useTopic<any>("/demo/fix","sensor_msgs/msg/NavSatFix", m=>{
+  useTopic<any>("/demo/fix","sensor_msgs/msg/NavSatFix", (m) => {
     setFix(m.latitude,m.longitude,lastFix?.yaw??0);
     pushTail([m.latitude,m.longitude],2000);
   });
-  useTopic<any>("/demo/odom","nav_msgs/msg/Odometry", m=>{
-    const {x,y,z,w}=m.pose.pose.orientation;
-    const yaw=Math.atan2(2*(w*z+x*y),1-2*(y*y+z*z));
-    if(lastFix) setFix(lastFix.lat,lastFix.lon,yaw);
+  useTopic<any>("/demo/odom","nav_msgs/msg/Odometry", (m) => {
+    const { x,y,z,w } = m.pose.pose.orientation;
+    const yaw = Math.atan2(2*(w*z+x*y), 1 - 2*(y*y+z*z));
+    if (lastFix) setFix(lastFix.lat, lastFix.lon, yaw);
   });
-  return lastFix;
+  return lastFix
 }
 
 export default function Navigation() {
   const fix = useFix();
-  const { tail } = useRimco();
 
+  // pickMode = true => user is picking a target
   const [pickMode, setPick] = useState(false);
   const [target, setTarget] = useState<LatLngLiteral | null>(null);
   const [selectedFile, setFile] = useState<string | null>(null);
 
-  /* Map click listener only active in pick-mode */
+  // Esc key is the same as clicking cancel
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        handleCancel();
+      }
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // Helper: Cancel pick
+  // return from pick mode to default
+  // and clear the marker
+  const handleCancel = () => {
+    setPick(false);
+    setTarget(null);
+  };
+
+  // Helper: Confirm pick
+  // return from pick mode to default
+  // after sending the navigate-to-pose action request (todo)
+  const handleConfirm = () => {
+    if (!target) return; // guard
+    setPick(false);
+    setTarget(null);
+  };
+
+  // Map click listener
   function ClickCapture({ onPick }: { onPick: (p: LatLngLiteral) => void }) {
     useMapEvents({
       click(e) {
-        onPick({ lat: e.latlng.lat, lon: e.latlng.lng });
+        onPick({ lat: e.latlng.lat, lng: e.latlng.lng });
       },
     });
     return null;
   }
 
-  if(!fix) return <p className="p-6">Waiting for robot pose…</p>;
 
+
+  {/* -------------------------------- PAGE -------------------------------- */}
+  if (!fix) return <p className="p-6">Waiting for robot pose…</p>;
   return (
     <div className="p-6 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4">
 
-      {/* ------------- MAP ------------- */}
+      {/* ------------------------------- MAP ------------------------------ */}
       <MapView fix={fix}>
-        {pickMode && <ClickCapture onPick={setTarget}/>}
-        {target && (
-          <Marker
-            position={target}
-            icon={defaultIcon} 
-            // or omit "icon" if you have your Leaflet CSS set up to show a default marker
-          />
+        {pickMode && <ClickCapture onPick={setTarget} />}
+        {/* Only show marker if user is picking AND target is set */}
+        {pickMode && target && (
+          <Marker position={target} icon={defaultIcon} />
         )}
       </MapView>
 
-      {/* ------------- side tiles ------------- */}
+      {/* --------------------------- SIDE TILES --------------------------- */}
       <div className="space-y-4 mt-4 lg:mt-0 w-64">
-        {/* Pick-and-Go */}
+
+        {/* -------------------------- PICK AND GO ------------------------- */}
         <div className="bg-white shadow rounded-lg p-4 space-y-3">
           <h3 className="font-semibold">Pick-and-Go</h3>
 
           <button
-            onClick={()=>setPick(v=>!v)}
-            className={`w-full rounded-md py-2 ${pickMode?"bg-red-600":"bg-emerald-600"} text-white`}
+            onClick={() => {
+              // toggle pickMode on
+              setPick(true);
+              setTarget(null);
+            }}
+            disabled={pickMode}
+            className={`w-full rounded-md py-2 ${
+              pickMode ? "bg-gray-300 cursor-not-allowed" : "bg-emerald-600"
+            } text-white`}
           >
-            {pickMode?"Cancel pick":"Select target"}
+            Select goal
           </button>
 
-          <button
-            disabled={!target}
-            className={`w-full rounded-md py-2 ${
-              target?"bg-brand text-white":"bg-gray-300 text-gray-600 cursor-not-allowed"
-            }`}
-            /* onClick={sendNavigateGoal}  ← stubbed out */
-          >
-            Confirm
-          </button>
+          {pickMode && (
+            <>
+              <button
+                onClick={handleCancel}
+                className="w-full rounded-md py-2 bg-red-600 text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleConfirm}
+                disabled={!target}
+                className={`w-full rounded-md py-2 ${
+                  target
+                    ? "bg-brand text-white"
+                    : "bg-gray-300 text-gray-600 cursor-not-allowed"
+                }`}
+              >
+                Confirm
+              </button>
+            </>
+          )}
 
           <p className="text-sm text-gray-500">
-            {/* status placeholder */}
             Status: &nbsp;<span className="text-gray-400">—</span>
           </p>
         </div>
 
-        {/* Waypoints */}
+        {/* --------------------------- WAYPOINTS -------------------------- */}
         <div className="bg-white shadow rounded-lg p-4 space-y-3">
           <h3 className="font-semibold">Waypoints</h3>
           {/* stub dropdown */}
