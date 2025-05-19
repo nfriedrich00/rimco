@@ -6,7 +6,7 @@ import Joystick from "../components/Joystick";
 import { useRimco } from "../store/useRimcoStore";
 
 // state hook
-function useFix(): Fix {
+function useFix(): Fix | null{
   const { lastFix, setFix, pushTail } = useRimco();
   const [fix, setFix_dep] = useState<Fix>({
     lat: 50.92570234902536,
@@ -30,7 +30,10 @@ function useFix(): Fix {
 export default function ManualControl() {
   const fix = useFix();
 
-  return (
+
+
+  {/* -------------------------------- PAGE -------------------------------- */}
+  if (!fix) return <p className="p-6">Waiting for robot pose…</p>;  return (
     <div className="p-6 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4">
       <MapView fix={fix} />
 
