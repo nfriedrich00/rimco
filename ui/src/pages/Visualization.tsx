@@ -27,12 +27,18 @@ export default function Visualization() {
   const [formUnit,  setFormUnit ]  = useState("");
 
   const resetForm = () => {
-    setDraftType(null); setFormName(""); setFormTopic(""); setFormUnit("");
+    setDraftType(null);
+    setFormName("");
+    setFormTopic("");
+    setFormUnit("");
   };
 
-  const close = () => { setStage("idle"); resetForm(); setEditIdx(null); };
+  const close = () => {
+    setStage("idle");
+    resetForm();
+    setEditIdx(null);
+  };
 
-  /* ---------- helpers ---------- */
   const openEdit = (idx: number, cfg: CardConfig) => {
     setEditIdx(idx);
     setDraftType(cfg.type as DraftType);
@@ -50,12 +56,14 @@ export default function Visualization() {
       draftType === "string-value"? { type: "string-value", ...common } :
       { type: draftType, ...common, unit: formUnit };
 
-    if (stage === "form") addCard(cfg);
-    else if (stage === "edit" && editIdx !== null) updateCard(editIdx, cfg);
+    if (stage == "form") {
+      addCard(cfg);
+    } else if (stage === "edit" && editIdx !== null) {
+      updateCard(editIdx, cfg);
+    }
     close();
   };
 
-  /* ---------- render one card ---------- */
   const renderCard = (c: CardConfig, i: number) => {
     const wrapper = (child: JSX.Element) => (
       <div onClick={()=>openEdit(i,c)} className="cursor-pointer">
@@ -67,11 +75,27 @@ export default function Visualization() {
       case "bool":
         return wrapper(<BoolCard   title={c.name} topic={c.topic} />);
       case "float-value":
-        return wrapper(<NumberCard name={c.name} topic={c.topic} unit={c.unit} messageType="std_msgs/msg/Float32"/>);
+        return wrapper(
+          <NumberCard
+            name={c.name}
+            topic={c.topic}
+            unit={c.unit}
+            messageType="std_msgs/msg/Float32"/>
+        );
       case "int-value":
-        return wrapper(<NumberCard name={c.name} topic={c.topic} unit={c.unit} messageType="std_msgs/msg/Int16"/>);
+        return wrapper(
+          <NumberCard
+            name={c.name}
+            topic={c.topic}
+            unit={c.unit}
+            messageType="std_msgs/msg/Int16"/>
+        );
       case "string-value":
-        return wrapper(<StringCard name={c.name} topic={c.topic} />);
+        return wrapper(
+          <StringCard
+            name={c.name}
+            topic={c.topic} />
+        );
       default:
         return wrapper(
           <div className="rounded-lg shadow bg-gray-100 text-gray-500 w-48 h-32 flex items-center justify-center text-sm">plot coming&nbsp;soon</div>
@@ -85,16 +109,23 @@ export default function Visualization() {
   return (
     <div className="p-6 flex flex-wrap gap-4">
       {cards.map(renderCard)}
-      <AddTile onClick={()=>setStage("pick")} />
+      <AddTile onClick={() => setStage("pick")} />
 
       {/* pick type */}
-      {stage==="pick" && (
+      {stage === "pick" && (
         <Modal onClose={close}>
           <h2 className="text-lg font-semibold mb-4">Add visualization</h2>
           {(["bool","float-value","float-plot","int-value","int-plot","string-value"] as DraftType[])
-            .map(t=>(
-              <button key={t} className={fullBtn} onClick={()=>{setDraftType(t);setStage("form");}}>
-                {t.replace("-"," ")}
+            .map(t => (
+              <button
+                key={t}
+                className={fullBtn}
+                onClick={() => {
+                  setDraftType(t);
+                  setStage("form");
+                }}
+              >
+                {t.replace("-", " ")}
               </button>
             ))}
         </Modal>
@@ -103,46 +134,76 @@ export default function Visualization() {
       {/* form / edit */}
       {["form","edit"].includes(stage) && draftType && (
         <Modal onClose={close}>
-          <h2 className="text-lg font-semibold mb-4">
-            {stage==="form"?"Add":"Edit"} {draftType.replace("-"," ")}
-          </h2>
-          <label className="block mb-3">
-            <span className="text-sm">Display name</span>
-            <input value={formName} onChange={e=>setFormName(e.target.value)}
-                   className="mt-1 w-full rounded border px-2 py-1"/>
-          </label>
-          <label className="block mb-3">
-            <span className="text-sm">Topic</span>
-            <input value={formTopic} onChange={e=>setFormTopic(e.target.value)}
-                   className="mt-1 w-full rounded border px-2 py-1"/>
-          </label>
-          {draftType.includes("value") && (
-            <label className="block mb-4">
-              <span className="text-sm">Unit (optional)</span>
-              <input value={formUnit} onChange={e=>setFormUnit(e.target.value)}
-                     className="mt-1 w-full rounded border px-2 py-1"/>
+          {/* Wrap inputs in a form */}
+          <form
+            onSubmit={(e) => {
+              e.preventDefault();
+              saveForm();
+            }}
+          >
+            <h2 className="text-lg font-semibold mb-4">
+              {stage === "form" ? "Add" : "Edit"}{" "}
+              {draftType.replace("-", " ")}
+            </h2>
+            <label className="block mb-3">
+              <span className="text-sm">Display name</span>
+              <input
+                value={formName}
+                onChange={(e) => setFormName(e.target.value)}
+                className="mt-1 w-full rounded border px-2 py-1"
+              />
             </label>
-          )}
-
-          <div className="text-right space-x-2">
-            {stage==="edit" && editIdx!==null && (
-              <button
-                className="px-3 py-1 rounded bg-red-600 text-white"
-                onClick={()=>{ removeCard(editIdx); close(); }}>
-                Delete
-              </button>
+            <label className="block mb-3">
+              <span className="text-sm">Topic</span>
+              <input
+                value={formTopic}
+                onChange={(e) => setFormTopic(e.target.value)}
+                className="mt-1 w-full rounded border px-2 py-1"
+              />
+            </label>
+            {draftType.includes("value") && (
+              <label className="block mb-4">
+                <span className="text-sm">Unit (optional)</span>
+                <input
+                  value={formUnit}
+                  onChange={(e) => setFormUnit(e.target.value)}
+                  className="mt-1 w-full rounded border px-2 py-1"
+                />
+              </label>
             )}
-            <button onClick={close} className="px-3 py-1 rounded bg-gray-100">Cancel</button>
-            <button
-              disabled={!formName||!formTopic}
-              onClick={saveForm}
-              className="px-4 py-1 rounded bg-brand text-white disabled:opacity-50">
-              {stage==="form"?"Add":"Save"}
-            </button>
-          </div>
+
+            <div className="text-right space-x-2">
+              {stage === "edit" && editIdx !== null && (
+                <button
+                  type="button"
+                  className="px-3 py-1 rounded bg-red-600 text-white"
+                  onClick={() => {
+                    removeCard(editIdx);
+                    close();
+                  }}
+                >
+                  Delete
+                </button>
+              )}
+              <button
+                type="button"
+                onClick={close}
+                className="px-3 py-1 rounded bg-gray-100"
+              >
+                Cancel
+              </button>
+              {/* Our submit button for Enter press */}
+              <button
+                type="submit"
+                disabled={!formName || !formTopic}
+                className="px-4 py-1 rounded bg-brand text-white disabled:opacity-50"
+              >
+                {stage === "form" ? "Add" : "Save"}
+              </button>
+            </div>
+          </form>
         </Modal>
       )}
     </div>
   );
 }
-
