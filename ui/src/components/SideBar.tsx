@@ -1,6 +1,8 @@
 import { NavLink } from "react-router-dom";
 import { useState } from "react";
 import { Menu, ChevronLeft, LayoutGrid, BarChart, Joystick, MapIcon } from "lucide-react";
+import { useLocation } from "react-router-dom";
+import { useViz } from "../store/useVizStore";
 
 const nav = [
   { to: "/monitoring",    label: "Monitoring",    Icon: LayoutGrid },
@@ -11,6 +13,9 @@ const nav = [
 
 export default function SideBar() {
   const [open, setOpen] = useState(true);
+  const location = useLocation();
+  const onViz = location.pathname === "/visualization";
+  const { saveLayout, loadLayout, saved } = useViz();
 
   return (
     <aside
@@ -44,6 +49,29 @@ export default function SideBar() {
           </NavLink>
         ))}
       </nav>
+
+      {onViz && (
+        <>
+          <div className="border-t my-3"/>
+          <button
+            className="mx-2 mb-2 w-[85%] rounded px-3 py-6 bg-emerald-500 text-white text-sm font-bold text-center"
+            onClick={() => saveLayout(prompt("Layout name?") || "unnamed")}
+          >
+            Save layout
+          </button>
+          <select
+            className="mx-2 mb-2 w-[85%] rounded px-3 py-3 border text-sm bg-white text-black font-bold text-center"
+            defaultValue=""
+          >
+            <option value="">Load layout…</option>
+            {Object.keys(saved).map(name => (
+              <option key={name} onClick={() => loadLayout(name)}>
+                {name}
+              </option>
+            ))}
+          </select>
+        </>
+      )}
     </aside>
   );
 }
