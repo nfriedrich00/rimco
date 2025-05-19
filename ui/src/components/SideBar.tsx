@@ -1,11 +1,12 @@
 import { NavLink } from "react-router-dom";
 import { useState } from "react";
-import { Menu, ChevronLeft, LayoutGrid, BarChart, Joystick } from "lucide-react";
+import { Menu, ChevronLeft, LayoutGrid, BarChart, Joystick, MapIcon } from "lucide-react";
 
 const nav = [
   { to: "/monitoring",    label: "Monitoring",    Icon: LayoutGrid },
-  { to: "/visualization", label: "Visualization", Icon: BarChart   },
-  { to: "/manual",        label: "Manual Control",Icon: Joystick   },
+  { to: "/visualization", label: "Visualization", Icon: BarChart },
+  { to: "/manual_control",label: "Manual Control",Icon: Joystick },
+  { to:"/navigation",     label:"Navigation",     Icon: MapIcon }
 ];
 
 export default function SideBar() {

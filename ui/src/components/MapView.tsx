@@ -1,14 +1,15 @@
 import { MapContainer, TileLayer, Polyline } from "react-leaflet";
 import { useEffect, useRef, useState } from "react";
+import type { ReactNode } from "react";
 import { useTopic } from "../lib/ros";
 import L from "leaflet";
 import ArrowMarker from "./ArrowMarker"
 import { useRimco } from "../store/useRimcoStore";
 
-type Fix = { lat: number; lon: number };
+export type Fix = { lat: number; lon: number };
 
-
-export default function MapView({ fix }: { fix: Fix }) {
+//export default function MapView({ fix }: { fix: Fix }) {
+export default function MapView({ fix, children }: { fix: Fix; children?: ReactNode;}) {
   const { lastFix, tail, pushTail, setFix } = useRimco();
   if (!lastFix) return <p className="text-sm">Waiting for fix…</p>;
 
@@ -51,6 +52,7 @@ export default function MapView({ fix }: { fix: Fix }) {
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
       <Polyline positions={tail} pathOptions={{ color: "#1e90ff" }} />
       <ArrowMarker lat={lastFix.lat} lon={lastFix.lon} yaw={yaw} />
+        {children}
     </MapContainer>
   );
 }
