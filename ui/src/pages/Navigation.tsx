@@ -3,8 +3,20 @@ import MapView from "../components/MapView";
 import type { Fix } from "../components/MapView";
 import { useRimco } from "../store/useRimcoStore";
 import { useTopic } from "../lib/ros";
-import { Polygon, useMapEvents } from "react-leaflet";
+import { useMapEvents, Marker } from "react-leaflet";
 import type { LatLngLiteral } from "leaflet";
+
+import L from "leaflet";
+import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
+import markerIcon from "leaflet/dist/images/marker-icon.png";
+import markerShadow from "leaflet/dist/images/marker-shadow.png";
+const defaultIcon = L.icon({
+  iconRetinaUrl: markerIcon2x,
+  iconUrl: markerIcon,
+  shadowUrl: markerShadow,
+  iconSize: [25, 41],
+  iconAnchor: [12, 41],
+});
 
 /* ---------- robot pose hook (as before) ---------- */
 function useFix(): Fix {
@@ -21,24 +33,21 @@ function useFix(): Fix {
   return lastFix;
 }
 
-/* ---------- helper marker triangle ---------- */
-const tri = (p:LatLngLiteral):LatLngLiteral[]=>[
-  [p.lat+0.00003,p.lon],
-  [p.lat-0.00002,p.lon+0.00002],
-  [p.lat-0.00002,p.lon-0.00002],
-];
-
 export default function Navigation() {
   const fix = useFix();
   const { tail } = useRimco();
 
-  const [pickMode,setPick] = useState(false);
-  const [target,setTarget] = useState<LatLngLiteral|null>(null);
-  const [selectedFile,setFile] = useState<string|null>(null);
+  const [pickMode, setPick] = useState(false);
+  const [target, setTarget] = useState<LatLngLiteral | null>(null);
+  const [selectedFile, setFile] = useState<string | null>(null);
 
   /* Map click listener only active in pick-mode */
-  function ClickCapture({onPick}:{onPick:(p:LatLngLiteral)=>void}) {
-    useMapEvents({ click:e=>onPick(e.latlng) });
+  function ClickCapture({ onPick }: { onPick: (p: LatLngLiteral) => void }) {
+    useMapEvents({
+      click(e) {
+        onPick({ lat: e.latlng.lat, lon: e.latlng.lng });
+      },
+    });
     return null;
   }
 
@@ -50,7 +59,13 @@ export default function Navigation() {
       {/* ------------- MAP ------------- */}
       <MapView fix={fix}>
         {pickMode && <ClickCapture onPick={setTarget}/>}
-        {target && <Polygon positions={tri(target)} pathOptions={{color:"red"}}/>}
+        {target && (
+          <Marker
+            position={target}
+            icon={defaultIcon} 
+            // or omit "icon" if you have your Leaflet CSS set up to show a default marker
+          />
+        )}
       </MapView>
 
       {/* ------------- side tiles ------------- */}
@@ -110,4 +125,3 @@ export default function Navigation() {
     </div>
   );
 }
-
