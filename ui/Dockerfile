@@ -6,8 +6,5 @@ RUN npm ci
 
 COPY . .
 
-USER node
-
 # ---------- dev ----------
 CMD ["npm", "run", "dev", "--", "--host"]
-
