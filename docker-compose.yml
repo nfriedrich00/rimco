@@ -8,25 +8,9 @@ services:
         apt install -y ros-humble-rosbridge-server &&
         ros2 launch rosbridge_server rosbridge_websocket_launch.xml
       "
-    networks: [rimco]
+    network_mode: host
     ports:
       - "9090:9090"
-
-  # --- Dummy publishers for local dev ---
-  dummies:
-    image: ros:humble
-    volumes:
-      - ./ros_dummies:/ros_dummies
-    command: >
-      bash -c "
-        source /opt/ros/humble/setup.bash &&
-        python3 /ros_dummies/diagnostic_heartbeat.py &
-        python3 /ros_dummies/bool_beacon.py &
-        python3 /ros_dummies/navsat_circle.py &
-        python3 /ros_dummies/odom_circle.py
-      "
-    networks: [rimco]
-    depends_on: [rosbridge]
 
   # --- React dev server (hot-reload) ---
   ui:
@@ -36,10 +20,7 @@ services:
       - /app/node_modules
     ports:
       - "5173:5173"
-    networks: [rimco]
+    network_mode: host
     depends_on: [rosbridge]
     environment:
       - VITE_ROSBRIDGE_URL=ws://localhost:9090
-
-networks:
-  rimco:
