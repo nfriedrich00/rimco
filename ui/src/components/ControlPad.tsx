@@ -4,7 +4,7 @@ import ROSLIB from "roslib";
 
 const topic = new ROSLIB.Topic({
   ros,
-  name: "/cmd_vel",
+  name: "/lynx/cmd_vel",
   messageType: "geometry_msgs/msg/Twist",
 });
 

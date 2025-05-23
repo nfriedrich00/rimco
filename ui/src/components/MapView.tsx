@@ -92,7 +92,7 @@ export default function MapView({
   const mapRef = useRef<L.Map>(null);
 
   /* ----- ROS subscriptions (always on) ----- */
-  useTopic<any>("/demo/odom", "nav_msgs/msg/Odometry", (m) => {
+  useTopic<any>("/odometry/global", "nav_msgs/msg/Odometry", (m) => {
     if (!mapRef.current) return;
     const p = m.pose.pose.position;
     const pos = enuToLatLon(mapRef.current, p.x, p.y);
@@ -101,7 +101,7 @@ export default function MapView({
     store.pushTrack("global", pos, yaw);
   });
 
-  useTopic<any>("/demo/odom", "nav_msgs/msg/Odometry", (m) => {
+  useTopic<any>("/odometry/global", "nav_msgs/msg/Odometry", (m) => {
     console.log("gnss:", g.gnss.last, "globalYaw:", g.global.yaw, "localYaw:", g.local.yaw);
     if (!mapRef.current) return;
     const p = m.pose.pose.position;
@@ -111,7 +111,7 @@ export default function MapView({
     store.pushTrack("local", pos, yaw);
   });
 
-  useTopic<any>("/demo/fix", "sensor_msgs/msg/NavSatFix", (m) => {
+  useTopic<any>("/fixposition/gnss1", "sensor_msgs/msg/NavSatFix", (m) => {
     store.pushTrack("gnss", { lat: m.latitude, lng: m.longitude });
   });
 

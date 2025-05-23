@@ -12,7 +12,7 @@ const PERIOD = 500;        // 2 Hz  (ms)
 /* ───────── ROS topic ───────── */
 const cmdVel = new ROSLIB.Topic({
   ros,
-  name: "/cmd_vel",
+  name: "/lynx/cmd_vel",
   messageType: "geometry_msgs/msg/Twist",
 });
 

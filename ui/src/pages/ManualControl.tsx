@@ -14,11 +14,11 @@ function useFix(): Fix | null{
     yaw: 0,
   });
 
-  useTopic<any>("/demo/fix","sensor_msgs/msg/NavSatFix", (msg)=>{
+  useTopic<any>("/fixposition/gnss1","sensor_msgs/msg/NavSatFix", (msg)=>{
     setFix(msg.latitude, msg.longitude, lastFix?.yaw ?? 0);
     pushTail([msg.latitude, msg.longitude]);
   });
-  useTopic<any>("/demo/odom","nav_msgs/msg/Odometry", (msg)=>{
+  useTopic<any>("/odometry/global","nav_msgs/msg/Odometry", (msg)=>{
     const { x,y,z,w } = msg.pose.pose.orientation;
     const yaw = Math.atan2(2*(w*z+x*y), 1-2*(y*y+z*z));
     if (lastFix) setFix(lastFix.lat, lastFix.lon, yaw);
