@@ -1,16 +1,16 @@
 services:
-  # --- ROS 2 → WebSocket bridge ---
   rosbridge:
     image: ros:humble
     command: >
       bash -c "
         apt update &&
-        apt install -y ros-humble-rosbridge-server &&
+        apt install -y ros-humble-rosbridge-server ros-humble-rmw-cyclonedds-cpp &&
         ros2 launch rosbridge_server rosbridge_websocket_launch.xml
       "
-    networks: [rimco]
-    ports:
-      - "9090:9090"
+    environment:
+      - ROS_DOMAIN_ID=0
+      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
+    network_mode: host
 
   # --- Dummy publishers for local dev ---
   dummies:
@@ -19,14 +19,19 @@ services:
       - ./ros_dummies:/ros_dummies
     command: >
       bash -c "
-        source /opt/ros/humble/setup.bash &&
+        apt update &&
+        apt install -y ros-humble-rmw-cyclonedds-cpp &&
+        export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp &&
         python3 /ros_dummies/diagnostic_heartbeat.py &
         python3 /ros_dummies/bool_beacon.py &
         python3 /ros_dummies/navsat_circle.py &
         python3 /ros_dummies/odom_circle.py
       "
-    networks: [rimco]
-    depends_on: [rosbridge]
+    environment:
+      - ROS_DOMAIN_ID=0
+#      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp 
+# Set this manually in the command only after the installation of cyclonedds
+    network_mode: host
 
   # --- React dev server (hot-reload) ---
   ui:
@@ -36,10 +41,8 @@ services:
       - /app/node_modules
     ports:
       - "5173:5173"
-    networks: [rimco]
-    depends_on: [rosbridge]
+    network_mode: host
+    depends_on:
+      - rosbridge
     environment:
       - VITE_ROSBRIDGE_URL=ws://localhost:9090
-
-networks:
-  rimco:
