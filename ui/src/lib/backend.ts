@@ -9,18 +9,16 @@ export function useBackendSync() {
   const wsRef = useRef<WebSocket | null>(null);
 
   useEffect(() => {
-    const ws = new WebSocket("ws://localhost:8080/ws");
+    const ws = new WebSocket(import.meta.env.VITE_BACKEND_URL + "/ws");
     wsRef.current = ws;
-    console.debug("Here");
 
     ws.onmessage = (e) => {
-      console.debug("onmessage");
       const m = JSON.parse(e.data);
       if (m.kind === "snapshot") {
         Object.entries(m.values).forEach(([t, d]) => setValue(t, d));
         setSettings(m.settings);
       } else if (m.kind === "value") {
-        setValue(m.topic, m.data);
+        setValue(m.topic, { data: m.data, stamp: Date.now() });
       }
     };
 

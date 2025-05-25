@@ -1,4 +1,6 @@
 import { useViz } from "../store/useVizStore";
+import { useEffect, useState } from "react";
+
 
 export default function BoolCard({
   topic,
@@ -7,7 +9,23 @@ export default function BoolCard({
   topic: string;
   title: string;
 }) {
-  const val = useViz((s) => s.lastValue[topic]) as boolean | undefined;
+  const raw = useViz((s) => s.lastValue[topic]) as { data: boolean; stamp: number } | undefined;
+  const staleTTL = useViz((s) => s.settings.stale_ttl_ms);
+
+  const [val, setVal] = useState<boolean | undefined>(undefined);
+
+  useEffect(() => {
+    if (raw) {
+      const elapsed = Date.now() - raw.stamp;
+      if (elapsed > staleTTL) {
+        setVal(undefined);
+      } else {
+        setVal(raw.data);
+      }
+    } else {
+      setVal(undefined);
+    }
+  }, [raw, staleTTL]);
 
   const color =
     val === undefined ? "bg-gray-300" : val ? "bg-emerald-500" : "bg-red-500";
