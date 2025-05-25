@@ -1,5 +1,5 @@
 import Fastify from "fastify";
-import ws from "fastify-websocket";
+import ws from "@fastify/websocket";
 import fs from "fs/promises";
 import ROSLIB from "roslib";
 import path from "path";
@@ -96,11 +96,32 @@ setInterval(async () => {
 }, 5000);
 
 /* ---------- fastify + websocket ---------- */
-const app = Fastify().register(ws);
+const app = Fastify()
+await app.register(ws);
 app.get("/ws", { websocket: true }, (client) => {
+  // send the snapshot on connection
   client.socket.send(
     JSON.stringify({ kind: "snapshot", values: last, settings })
   );
+
+  // Register a dummy message listener so that incoming messages are logged.
+  client.socket.on("message", (message) => {
+    console.debug("Received message from client:", message);
+    // you could echo or simply ignore the message
+  });
+
+  // Implement a periodic ping to keep the connection alive.
+  const pingInterval = setInterval(() => {
+    if (client.socket.readyState === client.socket.OPEN) {
+      // Sending a ping (you can choose the payload)
+      client.socket.send(JSON.stringify({ kind: 'ping' }));
+    }
+  }, 30000); // Ping every 30 seconds
+
+  client.socket.on("close", () => {
+    console.log("WebSocket connection closed");
+    clearInterval(pingInterval);
+  });
 });
 
 function broadcast(obj) {
