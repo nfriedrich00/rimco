@@ -1,0 +1,10 @@
+{
+  "name": "rimco-backend",
+  "private": true,
+  "type": "module",
+  "dependencies": {
+    "fastify": "^4.25.2",
+    "fastify-websocket": "^4.2.2",
+    "roslib": "^1.4.0"
+  }
+}

@@ -1,4 +1,14 @@
 services:
+  backend:
+    build: ./server
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+    environment:
+      - ROSBRIDGE_URL=ws://localhost:9090
+    network_mode: host
+    depends_on:
+      - rosbridge
   rosbridge:
     image: ros:humble
     command: >
@@ -38,11 +48,11 @@ services:
     build: ./ui
     volumes:
       - ./ui:/app
+      - ./config:/app/config
+      - ./data:/app/data
       - /app/node_modules
-    ports:
-      - "5173:5173"
     network_mode: host
     depends_on:
       - rosbridge
     environment:
-      - VITE_ROSBRIDGE_URL=ws://localhost:9090
+      - VITE_BACKEND_URL=ws://localhost:8080

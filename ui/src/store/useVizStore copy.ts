@@ -1,4 +1,5 @@
 import { create } from "zustand";
+import { persist } from "zustand/middleware";
 
 export type CardConfig =
   | { type: "bool";         name: string; topic: string }
@@ -9,6 +10,7 @@ export type CardConfig =
   | { type: "string-value"; name: string; topic: string };
 
 interface VizState {
+  /* layout & presets (long-lived) ------------------- */
   cards: CardConfig[];
   saved: Record<string, CardConfig[]>;
   addCard    : (c: CardConfig) => void;
@@ -18,15 +20,15 @@ interface VizState {
   loadLayout : (name: string) => void;
   deleteLayout: (name: string) => void;
 
-  lastValue: Record<string, unknown>;
-  setValue: (topic: string, data: unknown) => void;
-
-  settings: { stale_ttl_ms: number };
-  setSettings: (cfg: { stale_ttl_ms: number }) => void;
+  /* live data (NOT persisted) ----------------------- */
+  lastValue : Record<string, unknown>;          // topic → latest .data
+  setValue  : (topic: string, data: unknown) => void;
 }
 
-export const useViz = create<VizState>()((set, get) => ({
-      /* ------------------------------ layout ------------------------------ */
+export const useViz = create<VizState>()(
+  persist(
+    (set, get) => ({
+      /* ---------- layout ---------- */
       cards: [],
       saved: {},
 
@@ -50,6 +52,7 @@ export const useViz = create<VizState>()((set, get) => ({
           return { saved: rest };
         }),
 
+      /* ---------- live values ---------- */
       lastValue: {} as Record<string, unknown>,
       setValue: (topic: string, data: unknown) =>
         set((s) => ({ lastValue: { ...s.lastValue, [topic]: data } })),
@@ -57,4 +60,16 @@ export const useViz = create<VizState>()((set, get) => ({
       settings: { stale_ttl_ms: 10000 },
       setSettings: (cfg: any) =>
         set({ settings: cfg }),
-}));
+    }),
+
+    /* -------- persistor options -------- */
+    {
+      name: "viz-store",
+      /* only save layouts + cards, NOT lastValue  */
+      partialize: (state) => ({
+        cards: state.cards,
+        saved: state.saved,
+      }),
+    },
+  ),
+);

@@ -1,0 +1,7 @@
+{
+  "/demo/bool":        "std_msgs/msg/Bool",
+  "/demo/bool2":       "std_msgs/msg/Bool",
+  "/demo/float32":     "std_msgs/msg/Float32",
+  "/demo/int16":       "std_msgs/msg/Int16",
+  "/demo/string":      "std_msgs/msg/String"
+}
