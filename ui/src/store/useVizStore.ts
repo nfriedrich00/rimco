@@ -44,9 +44,7 @@ export const useViz = create<VizState>()((set, get) => ({
       loadLayout: async (name:string)=>{
         const api_url = import.meta.env.VITE_API_URL || '';
         const res = await fetch(`${api_url}/api/layouts/${name}`);
-        console.debug("loadLayout", name, res);
         if(res.ok){
-          console.debug("Loaded layout", name);
           const cards = await res.json();
           set({ cards });
         }

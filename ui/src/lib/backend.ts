@@ -1,12 +1,15 @@
-/* ui/src/lib/backend.ts */
 import { useEffect, useRef } from "react";
 import { useViz } from "../store/useVizStore";
+import { useRimco } from "../store/useRimcoStore";
 
 
 export function useBackendSync() {
   const setValue    = useViz((s) => s.setValue);
   const setSettings = useViz((s) => s.setSettings);
   const wsRef = useRef<WebSocket | null>(null);
+
+  const setComp  = useRimco.getState().upsertComponent;
+
 
   useEffect(() => {
     const ws = new WebSocket(import.meta.env.VITE_BACKEND_URL + "/ws");
@@ -16,9 +19,12 @@ export function useBackendSync() {
       const m = JSON.parse(e.data);
       if (m.kind === "snapshot") {
         Object.entries(m.values).forEach(([t, d]) => setValue(t, d));
+        Object.entries(m.monitoring).forEach(([n,v]:[string,any]) => setComp(n, v.level, v.stamp));
         setSettings(m.settings);
       } else if (m.kind === "value") {
         setValue(m.topic, { data: m.data, stamp: Date.now() });
+      } else if (m.kind === "monitoring") {
+        setComp(m.name, m.level, m.stamp);
       }
     };
 

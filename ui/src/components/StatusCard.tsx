@@ -1,4 +1,7 @@
-const levelColour: Record<number, string> = {
+import { useViz } from "../store/useVizStore";
+import type { ComponentEntry } from "../store/useRimcoStore";
+
+const levelColor: Record<number, string> = {
   0: "bg-ok",        // OK
   1: "bg-warn",      // WARN
   2: "bg-danger",    // ERROR
@@ -12,26 +15,17 @@ export interface ComponentStatus {
   lastUpdate: number;     // unix millis
 }
 
-export default function StatusCard({ data }: { data: ComponentStatus }) {
-  const now = Date.now();
-  const stale = now - data.lastUpdate > 10_000;     // 10 s timeout
-  const colour =
-    data.level === null || stale
-      ? "bg-gray-300"
-      : levelColour[data.level] ?? "bg-gray-300";
+export default function StatusCard({data}:{data:ComponentEntry}){
+  const ttl = useViz((s)=>s.settings.stale_ttl_ms);
+  const stale = Date.now() - data.lastUpdate > ttl;
+  const color = stale ? "bg-gray-300" : levelColor[data.level] || "bg-gray-300";
 
   return (
     <div className="rounded-lg shadow px-4 py-3 bg-white w-48">
       <h3 className="text-sm mb-2 truncate">{data.name}</h3>
-      <div
-        className={`mx-auto h-8 w-8 rounded-full ${colour}`}
-      />
+      <div className={`mx-auto h-8 w-8 rounded-full ${color}`}/>
       <p className="mt-1 text-center text-xs text-gray-600">
-        {stale
-          ? "STALE"
-          : data.level === null
-          ? "—"
-          : ["OK", "WARN", "ERR", "STALE"][data.level] ?? data.level}
+        {stale ? "STALE" : ["OK","WARN","ERR","STALE"][data.level] }
       </p>
     </div>
   );

@@ -33,7 +33,8 @@ const LAYOUTS_DIR = path.join(CONFIG_DIR, "layouts"); // visualization layouts
 const HISTORY_DIR = path.join(DATA_DIR, "history");   // history of specific topic values
 const LAST_FILE  = path.join(DATA_DIR, "last.json");  // last value for each topic
 const MON_DIR    = path.join(DATA_DIR, "monitoring"); // all monitoring data
-const MAX_MBYTES = 5;                       // rotate monitoring file at 5 MB
+const MAX_MBYTES = 5;                                 // rotate monitoring file at 5 MB
+const FLUSH_INTERVAL = 5000;                          // flush last.json every 5 seconds
 
 mkdirSync(DATA_DIR, { recursive: true });
 mkdirSync(LAYOUTS_DIR, { recursive: true });
@@ -57,7 +58,7 @@ const ros = new ROSLIB.Ros({ url: process.env.ROSBRIDGE_URL || "ws://rosbridge:9
 ros.on("error", console.error);
 
 /* ---------- caches ---------- */
-const last = {};                      // { topic: data }
+const last = {};                      // { topic: {data, stamp} }
 try { Object.assign(last, JSON.parse(await fs.readFile(LAST_FILE, "utf8"))); }
 catch { /* first run */ }
 
@@ -87,10 +88,12 @@ function subLatest(topic, type) {
 Object.entries(topics).forEach(([t, ty]) => subLatest(t, ty));
 
 /* /monitoring full log */
+const lastMonitoring = {};          // { name: {level, stamp} }
 new ROSLIB.Topic({ ros, name: "/monitoring", messageType: "diagnostic_msgs/msg/DiagnosticStatus" })
   .subscribe((msg) => {
+    lastMonitoring[msg.name] = { level: msg.level, stamp: Date.now() };
+    broadcast({ kind: "monitoring", name: msg.name, level: msg.level, stamp: lastMonitoring[msg.name].stamp } );     
     writeMon({ stamp: Date.now(), ...msg });
-    broadcast({ kind: "monitoring", msg });
   });
 
 /* ---------- periodic flush of LAST_FILE ---------- */
@@ -99,7 +102,8 @@ setInterval(async () => {
   if (!dirty) return;
   dirty = false;
   await fs.writeFile(LAST_FILE, JSON.stringify(last));
-}, 5000);
+}, FLUSH_INTERVAL);
+
 
 /* --------------------------- fastify + websocket -------------------------- */
 const app = Fastify()
@@ -136,7 +140,6 @@ app.get("/api/layouts/:name", async (req, reply) => {
 
 /* ------ POST one specific layout to ./config/layouts/ using the name ------ */
 app.post("/api/layouts/:name", async (req, reply) => {
-  console.debug("Saving layout:", req.params.name);
   await fs.writeFile(
     path.join(LAYOUTS_DIR, req.params.name + ".json"),
     JSON.stringify(req.body, null, 2),
@@ -148,12 +151,11 @@ app.post("/api/layouts/:name", async (req, reply) => {
 app.get("/ws", { websocket: true }, (client) => {
   // send the snapshot on connection
   client.socket.send(
-    JSON.stringify({ kind: "snapshot", values: last, settings })
+    JSON.stringify({ kind: "snapshot", values: last, monitoring: lastMonitoring, settings })
   );
 
   // Register a dummy message listener so that incoming messages are logged.
   client.socket.on("message", (message) => {
-    console.debug("Received message from client:", message);
     // you could echo or simply ignore the message
   });
 

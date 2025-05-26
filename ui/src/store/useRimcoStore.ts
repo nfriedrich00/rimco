@@ -1,15 +1,7 @@
 import { create } from "zustand";
-import { persist } from "zustand/middleware";
 import type { LatLngLiteral } from "leaflet";
 
 type TailPoint = [number, number];  // lat, lon
-type Level = 0 | 1 | 2 | 3 | null;  // DiagnosticStatus level
-
-interface MonitoringEntry {
-  name: string;
-  level: Level;
-  lastUpdate: number;
-}
 
 interface RimcoState {
   /* map */
@@ -25,12 +17,12 @@ interface RimcoState {
   };
 
   /* monitoring */
-  components: Record<string, MonitoringEntry>;
+  components: Record<string, ComponentEntry>;
 
   /* actions */
   pushTail: (p: TailPoint, max?: number) => void;
   setFix: (lat: number, lon: number, yaw: number) => void;
-  upsertComponent: (name: string, level: Level) => void;
+  upsertComponent: (name: string, level: number, stamp: number) => void;
   pushTrack: (
     which: "global" | "local" | "gnss",
     pos: LatLngLiteral,
@@ -41,9 +33,15 @@ interface RimcoState {
   clearTracks: () => void;
 }
 
-export const useRimco = create<RimcoState>()(
-  persist(
-    (set, get) => ({
+export interface ComponentEntry {
+  name: string;
+  level: number;      // 0..3
+  lastUpdate: number; // ms unix
+}
+
+export const useRimco = create<RimcoState>()((set, get) => ({
+      /* -------------------------------- map ------------------------------- */
+
       tail: [],
       lastFix: null,
 
@@ -51,8 +49,6 @@ export const useRimco = create<RimcoState>()(
         show: { global: true, local: false, gnss: false },
         tracks: { global: { tail: [] }, local: { tail: [] }, gnss: { tail: [] } },
       },
-
-      components: {},
 
 
       pushTail: (p, max = 3600) =>
@@ -62,16 +58,6 @@ export const useRimco = create<RimcoState>()(
         }),
 
       setFix: (lat, lon, yaw) => set({ lastFix: { lat, lon, yaw: yaw } }),
-
-      upsertComponent: (name, level) =>
-        set((s) => {
-          return {
-            components: {
-              ...s.components,
-              [name]: { name, level, lastUpdate: Date.now() },
-            },
-          };
-        }),
 
       pushTrack: (
         which: "global" | "local" | "gnss",
@@ -107,7 +93,17 @@ export const useRimco = create<RimcoState>()(
             },
           },
         })),
-    }),
-    { name: "rimco-store" }, // localStorage key
-  ),
-);
+
+
+      /* ---------------------------- monitoring ---------------------------- */
+
+      components: {} as Record<string, ComponentEntry>,
+
+      upsertComponent: (name: string, level: number, stamp: number) =>
+        set((s) => ({
+          components: {
+            ...s.components,
+            [name]: { name, level, lastUpdate: stamp },
+            },
+        })),
+}));
