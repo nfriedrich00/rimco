@@ -3,6 +3,7 @@
   "private": true,
   "type": "module",
   "dependencies": {
+    "@fastify/cors": "^8.5.0",
     "@fastify/websocket": "^9.0.0",
     "fastify": "^4.26.1",
     "roslib": "^1.4.0"

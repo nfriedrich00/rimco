@@ -6,6 +6,7 @@ import NumberCard from "../components/NumberCard";
 import StringCard from "../components/StringCard";
 import { useViz } from "../store/useVizStore";
 import type { CardConfig} from "../store/useVizStore";
+import { useEffect } from "react";
 
 type DraftType =
   | "bool"
@@ -16,7 +17,8 @@ type DraftType =
   | "string-value";
 
 export default function Visualization() {
-  const { cards, addCard, updateCard, removeCard } = useViz();
+  const { cards, addCard, updateCard, removeCard, loadLayout } = useViz();
+  useEffect(()=>{ loadLayout("default").catch(()=>{/* ignore */}); },[loadLayout]);
   const [stage, setStage] = useState<"idle" | "pick" | "form" | "edit">("idle");
   const [draftType, setDraftType] = useState<DraftType | null>(null);
   const [editIdx, setEditIdx] = useState<number | null>(null);

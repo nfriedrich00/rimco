@@ -3,19 +3,25 @@ import { useState } from "react";
 import { Menu, ChevronLeft, LayoutGrid, BarChart, Joystick, MapIcon } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useViz } from "../store/useVizStore";
+import { useEffect } from "react";
 
 const nav = [
   { to: "/monitoring",    label: "Monitoring",    Icon: LayoutGrid },
   { to: "/visualization", label: "Visualization", Icon: BarChart },
   { to: "/manual_control",label: "Manual Control",Icon: Joystick },
-  { to:"/navigation",     label:"Navigation",     Icon: MapIcon }
+  { to: "/navigation",    label:"Navigation",     Icon: MapIcon }
 ];
 
 export default function SideBar() {
   const [open, setOpen] = useState(true);
   const location = useLocation();
   const onViz = location.pathname === "/visualization";
-  const { saveLayout, loadLayout, saved } = useViz();
+  const { saveLayout, loadLayout, cards } = useViz();
+  const [layoutNames, setNames] = useState<string[]>([]);
+  useEffect(()=>{
+    const api_url = import.meta.env.VITE_API_URL || '';
+    fetch(`${api_url}/api/layouts`).then(r=>r.json()).then(setNames).catch(()=>setNames([]));
+  },[]);
 
   return (
     <aside
@@ -55,18 +61,26 @@ export default function SideBar() {
           <div className="border-t my-3"/>
           <button
             className="mx-2 mb-2 w-[85%] rounded px-3 py-6 bg-emerald-500 text-white text-sm font-bold text-center"
-            onClick={() => saveLayout(prompt("Layout name?") || "unnamed")}
-          >
+            onClick={()=>{
+              const name = prompt("Save layout as…");
+              if(name) saveLayout(name, cards);
+            }}>
             Save layout
           </button>
           <select
             className="mx-2 mb-2 w-[85%] rounded px-3 py-3 border text-sm bg-white text-black font-bold text-center"
+            onChange={(e) => {
+              const selected = e.target.value;
+              if (selected) {
+                loadLayout(selected);
+              }
+            }}
             defaultValue=""
           >
-            <option value="">Load layout…</option>
-            {Object.keys(saved).map(name => (
-              <option key={name} onClick={() => loadLayout(name)}>
-                {name}
+            <option value="">Load layout …</option>
+            {layoutNames.map((n) => (
+              <option key={n} value={n}>
+                {n}
               </option>
             ))}
           </select>
@@ -75,4 +89,3 @@ export default function SideBar() {
     </aside>
   );
 }
-

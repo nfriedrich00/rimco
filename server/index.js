@@ -1,5 +1,6 @@
 import Fastify from "fastify";
 import ws from "@fastify/websocket";
+import cors from '@fastify/cors';     // to save the layout from the frontend
 import fs from "fs/promises";
 import ROSLIB from "roslib";
 import path from "path";
@@ -27,12 +28,17 @@ async function waitForRosbridge(port = 9090, retries = 300, delayMs = 2000) {
 await waitForRosbridge(9090);
 
 const DATA_DIR   = "./data";
-const LAST_FILE  = path.join(DATA_DIR, "last.json");
-const MON_DIR    = path.join(DATA_DIR, "monitoring");
+const CONFIG_DIR = "./config";
+const LAYOUTS_DIR = path.join(CONFIG_DIR, "layouts"); // visualization layouts
+const HISTORY_DIR = path.join(DATA_DIR, "history");   // history of specific topic values
+const LAST_FILE  = path.join(DATA_DIR, "last.json");  // last value for each topic
+const MON_DIR    = path.join(DATA_DIR, "monitoring"); // all monitoring data
 const MAX_MBYTES = 5;                       // rotate monitoring file at 5 MB
 
-mkdirSync(DATA_DIR,   { recursive: true });
-mkdirSync(MON_DIR,    { recursive: true });
+mkdirSync(DATA_DIR, { recursive: true });
+mkdirSync(LAYOUTS_DIR, { recursive: true });
+mkdirSync(MON_DIR, { recursive: true });
+
 
 /* ---------- load topics list ---------- */
 let topics = {};
@@ -87,7 +93,7 @@ new ROSLIB.Topic({ ros, name: "/monitoring", messageType: "diagnostic_msgs/msg/D
     broadcast({ kind: "monitoring", msg });
   });
 
-/* ---------- periodic flush of last.json ---------- */
+/* ---------- periodic flush of LAST_FILE ---------- */
 let dirty = false;
 setInterval(async () => {
   if (!dirty) return;
@@ -95,9 +101,50 @@ setInterval(async () => {
   await fs.writeFile(LAST_FILE, JSON.stringify(last));
 }, 5000);
 
-/* ---------- fastify + websocket ---------- */
+/* --------------------------- fastify + websocket -------------------------- */
 const app = Fastify()
-await app.register(ws);
+await app.register(cors, { origin: '*', });    // this allows to save layouts to the backend from the frontend
+await app.register(ws);                        // websocket is to make messages available to the frontend
+/* ------------------------------ API endpoints ----------------------------- */
+/* ----------------- GET all filenames in ./config/layouts/ ----------------- */
+app.get("/api/layouts", async (req, reply) => {
+  try {
+    const files = await fs.readdir(LAYOUTS_DIR);
+    const names = files
+      .filter((file) => file.endsWith(".json"))
+      .map((file) => file.slice(0, -5));
+    reply.send(names);
+  } catch (err) {
+    console.error("Error reading layouts directory", err);
+    reply.send([]);
+  }
+});
+
+/* ------ GET one specific layout from ./config/layouts/ using the name ----- */
+app.get("/api/layouts/:name", async (req, reply) => {
+  try {
+    const file = await fs.readFile(
+      path.join(LAYOUTS_DIR, req.params.name + ".json"),
+      "utf8"
+    );
+    reply.send(JSON.parse(file));
+  } catch (err) {
+    console.error("Error reading layout file:", err);
+    reply.code(404).send({ error: "Layout not found" });
+  }
+});
+
+/* ------ POST one specific layout to ./config/layouts/ using the name ------ */
+app.post("/api/layouts/:name", async (req, reply) => {
+  console.debug("Saving layout:", req.params.name);
+  await fs.writeFile(
+    path.join(LAYOUTS_DIR, req.params.name + ".json"),
+    JSON.stringify(req.body, null, 2),
+  );
+  reply.send({ ok: true });
+});
+
+
 app.get("/ws", { websocket: true }, (client) => {
   // send the snapshot on connection
   client.socket.send(
