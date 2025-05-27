@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { useTopic } from "../lib/ros";
+import { useViz } from "../store/useVizStore";
+import { useEffect, useState } from "react";
 
 export default function StringCard({
   topic,
@@ -8,8 +8,24 @@ export default function StringCard({
   topic: string;
   name: string;
 }) {
-  const [txt, setTxt] = useState<string>("—");
-  useTopic<any>(topic, "std_msgs/msg/String", (m) => setTxt(m.data));
+
+  const raw_val = useViz((s) => s.lastValue[topic]) as { data: string; stamp: number } | undefined;
+  const staleTTL = useViz((s) => s.settings.stale_ttl_ms);
+
+  const [txt, setTxt] = useState<string>('-');
+
+  useEffect(() => {
+    if (raw_val) {
+      const elapsed = Date.now() - raw_val.stamp;
+      if (elapsed > staleTTL) {
+        setTxt('-');
+      } else {
+        setTxt(raw_val.data);
+      }
+    } else {
+      setTxt('-');
+    }
+  }, [raw_val, staleTTL]);
 
   return (
     <div className="rounded-lg shadow bg-white w-48 p-3 space-y-2">
@@ -19,4 +35,3 @@ export default function StringCard({
     </div>
   );
 }
-
