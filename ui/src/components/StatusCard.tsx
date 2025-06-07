@@ -1,7 +1,6 @@
 import { useViz } from "../store/useVizStore";
 import type { ComponentEntry } from "../store/useRimcoStore";
 import { useRimco } from "../store/useRimcoStore";
-import { useEffect, useState } from "react";
 
 const levelColor: Record<number, string> = {
   0: "bg-ok",        // OK
