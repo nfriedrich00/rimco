@@ -12,17 +12,27 @@ export function useBackendSync() {
 
 
   useEffect(() => {
+  const id = setInterval(
+    () => useRimco.setState({ clock: Date.now() }),
+    1000
+  );
+  return () => clearInterval(id);
+}, []);
+
+
+  useEffect(() => {
     const ws = new WebSocket(import.meta.env.VITE_BACKEND_URL + "/ws");
     wsRef.current = ws;
 
     ws.onmessage = (e) => {
       const m = JSON.parse(e.data);
       if (m.kind === "snapshot") {
-        Object.entries(m.values).forEach(([t, d]) => setValue(t, d));
+        Object.entries(m.values).forEach(([t, d]) => setValue(t, d, Date.now()));
         Object.entries(m.monitoring).forEach(([n,v]:[string,any]) => setComp(n, v.level, v.stamp));
         setSettings(m.settings);
       } else if (m.kind === "value") {
-        setValue(m.topic, { data: m.data, stamp: Date.now() });
+        //setValue(m.topic, { data: m.data, stamp: Date.now() });
+        setValue(m.topic, m.data, Date.now());
       } else if (m.kind === "monitoring") {
         setComp(m.name, m.level, m.stamp);
       }

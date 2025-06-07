@@ -107,6 +107,33 @@ export default function Visualization() {
 
   const fullBtn = "block w-full rounded-md border px-4 py-2 text-left hover:bg-gray-50";
 
+  const { syncTopics } = useViz();
+
+  /* run whenever cards array changes */
+  useEffect(()=>{
+    syncTopics();
+    // fire-and-forget save as "current"
+    const api_url = import.meta.env.VITE_API_URL || '';
+    fetch(`${api_url}/api/layouts/current`,{
+      method:"POST",
+      headers:{ "Content-Type":"application/json"},
+      body: JSON.stringify(cards),
+    });
+  },[cards, syncTopics]);
+
+  useEffect(()=>{
+    (async ()=>{
+      const api_url = import.meta.env.VITE_API_URL || '';
+      const res = await fetch(`${api_url}/api/layouts`);
+      if(res.ok){
+        const json = await res.json();
+        useViz.setState({ cards: json });
+        syncTopics();              // make sure subs align
+      } else {
+        loadLayout("default");     // fallback only once
+      }
+    })();
+  },[]);
   /* ---------- JSX ---------- */
   return (
     <div className="p-6 flex flex-wrap gap-4">

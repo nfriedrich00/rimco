@@ -1,5 +1,6 @@
 import { useViz } from "../store/useVizStore";
 import type { ComponentEntry } from "../store/useRimcoStore";
+import { useRimco } from "../store/useRimcoStore";
 import { useEffect, useState } from "react";
 
 const levelColor: Record<number, string> = {
@@ -17,15 +18,11 @@ export interface ComponentStatus {
 }
 
 export default function StatusCard({data}:{data:ComponentEntry}){
+  const clock = useRimco(s=>s.clock);
+
   const ttl = useViz((s)=>s.settings.stale_ttl_ms);
 
-  const [, setTick] = useState(0);
-  useEffect(() => {
-    const id = setInterval(() => setTick((n) => n + 1), 1_000);
-    return () => clearInterval(id);
-  }, []);
-
-  const stale = Date.now() - data.lastUpdate > ttl;
+  const stale = clock - data.lastUpdate > ttl;
   const color = stale ? "bg-gray-300" : levelColor[data.level] || "bg-gray-300";
 
   return (

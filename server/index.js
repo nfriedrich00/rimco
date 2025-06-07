@@ -78,6 +78,28 @@ function writeMon(line) {
 }
 
 /* ---------- subscribers ---------- */
+const subs = {};         // { topic -> { rosTopic, count } }
+function ensureSub(topic, type){
+  if(subs[topic]){ subs[topic].count++; return; }
+
+  const rosTopic = new ROSLIB.Topic({ ros, name:topic, messageType:type });
+  rosTopic.subscribe(msg=>{
+    last[topic] = { data: msg.data, stamp: Date.now() };
+    broadcast({ kind:"value", topic, data:msg.data });
+    dirty = true;
+  });
+  subs[topic] = { rosTopic, count:1 };
+}
+
+function dropSub(topic){
+  const s = subs[topic];
+  if(!s) return;
+  if(--s.count===0){
+    s.rosTopic.unsubscribe();
+    delete subs[topic];
+  }
+}
+
 function subLatest(topic, type) {
   new ROSLIB.Topic({ ros, name: topic, messageType: type }).subscribe((msg) => {
     last[topic] = { data: msg.data, stamp: Date.now() };
@@ -171,6 +193,26 @@ app.get("/ws", { websocket: true }, (client) => {
     console.log("WebSocket connection closed");
     clearInterval(pingInterval);
   });
+});
+
+/* POST /api/topics  body = { topics:{ topic: messageType } } */
+app.post("/api/topics", async (req, reply)=>{
+  const desired = req.body.topics;                  // object
+  const want = new Set(Object.keys(desired));
+  const have = new Set(Object.keys(subs));
+
+  // add new
+  for(const t of want) if(!have.has(t))
+    ensureSub(t, desired[t]);
+
+  // drop missing
+  for(const t of have) if(!want.has(t))
+    dropSub(t);
+
+  // save to disk so backend restarts clean
+  await fs.writeFile("./config/topics.json", JSON.stringify(desired,null,2));
+
+  reply.send({ ok:true, current:Object.keys(subs) });
 });
 
 function broadcast(obj) {
