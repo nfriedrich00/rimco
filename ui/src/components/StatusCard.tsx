@@ -1,5 +1,6 @@
 import { useViz } from "../store/useVizStore";
 import type { ComponentEntry } from "../store/useRimcoStore";
+import { useEffect, useState } from "react";
 
 const levelColor: Record<number, string> = {
   0: "bg-ok",        // OK
@@ -17,6 +18,13 @@ export interface ComponentStatus {
 
 export default function StatusCard({data}:{data:ComponentEntry}){
   const ttl = useViz((s)=>s.settings.stale_ttl_ms);
+
+  const [, setTick] = useState(0);
+  useEffect(() => {
+    const id = setInterval(() => setTick((n) => n + 1), 1_000);
+    return () => clearInterval(id);
+  }, []);
+
   const stale = Date.now() - data.lastUpdate > ttl;
   const color = stale ? "bg-gray-300" : levelColor[data.level] || "bg-gray-300";
 
