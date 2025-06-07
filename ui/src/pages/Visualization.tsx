@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AddTile from "../components/AddTile";
 import Modal from "../components/Modal";
 import BoolCard from "../components/BoolCard";
@@ -6,7 +6,6 @@ import NumberCard from "../components/NumberCard";
 import StringCard from "../components/StringCard";
 import { useViz } from "../store/useVizStore";
 import type { CardConfig} from "../store/useVizStore";
-import { useEffect } from "react";
 
 type DraftType =
   | "bool"
@@ -17,8 +16,7 @@ type DraftType =
   | "string-value";
 
 export default function Visualization() {
-  const { cards, addCard, updateCard, removeCard, loadLayout } = useViz();
-  useEffect(()=>{ loadLayout("default").catch(()=>{/* ignore */}); },[loadLayout]);
+  const { cards, addCard, updateCard, removeCard, loadLayout, saveLayout } = useViz();
   const [stage, setStage] = useState<"idle" | "pick" | "form" | "edit">("idle");
   const [draftType, setDraftType] = useState<DraftType | null>(null);
   const [editIdx, setEditIdx] = useState<number | null>(null);
@@ -108,32 +106,23 @@ export default function Visualization() {
   const fullBtn = "block w-full rounded-md border px-4 py-2 text-left hover:bg-gray-50";
 
   const { syncTopics } = useViz();
-
-  /* run whenever cards array changes */
-  useEffect(()=>{
-    syncTopics();
-    // fire-and-forget save as "current"
-    const api_url = import.meta.env.VITE_API_URL || '';
-    fetch(`${api_url}/api/layouts/current`,{
-      method:"POST",
-      headers:{ "Content-Type":"application/json"},
-      body: JSON.stringify(cards),
-    });
-  },[cards, syncTopics]);
-
-  useEffect(()=>{
-    (async ()=>{
-      const api_url = import.meta.env.VITE_API_URL || '';
-      const res = await fetch(`${api_url}/api/layouts`);
-      if(res.ok){
-        const json = await res.json();
-        useViz.setState({ cards: json });
-        syncTopics();              // make sure subs align
-      } else {
-        loadLayout("default");     // fallback only once
+  useEffect(() => {
+    (async () => {
+      try {
+        await loadLayout("current");
+      } catch {
+        await loadLayout("default");
       }
+      syncTopics();
     })();
-  },[]);
+  }, [loadLayout, syncTopics]);
+
+  useEffect(() => {
+    if (cards.length === 0) return;
+    syncTopics();
+    saveLayout("current", cards);
+  }, [cards, syncTopics, saveLayout]);
+
   /* ---------- JSX ---------- */
   return (
     <div className="p-6 flex flex-wrap gap-4">
