@@ -98,8 +98,11 @@ export default function SideBar() {
             onClick={() => setOpenList(v => !v)}
             className="relative mx-2 mb-2 w-[85%] rounded px-3 py-3 border
                        bg-white text-black text-sm font-bold text-center">
-            {layoutDirty ? "Unsaved layout" :
-             loadedLayout || "Load layout …"}
+            {(() => {
+              if (layoutDirty) return "Unsaved layout";
+              if (loadedLayout && loadedLayout !== "current") return loadedLayout;
+              return "Load layout …";
+            })()}
           </button>
 
           {/* dropdown */}
