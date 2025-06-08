@@ -32,10 +32,15 @@ const CONFIG_DIR = "./config";
 const LAYOUTS_DIR = path.join(CONFIG_DIR, "layouts"); // visualization layouts
 const HISTORY_DIR = path.join(DATA_DIR, "history");   // history of specific topic values
 const LAST_FILE  = path.join(DATA_DIR, "last.json");  // last value for each topic
-const MON_DIR    = path.join(DATA_DIR, "monitoring"); // all monitoring data
+const MON_DIR = path.join(DATA_DIR, "monitoring");
+const MON_MAX_MBYTES = 5;
 const MAP_TRACKS_DIR = path.join(DATA_DIR, "tracks");
-const MAX_MBYTES = 5;                                 // rotate monitoring file at 5 MB
+const MAP_MAX_MBYTES = 10;
 const FLUSH_INTERVAL = 5000;                          // flush last.json every 5 seconds
+const SESSION_ID = new Date()
+  .toISOString()
+  .replace(/[:T]/g, "_")
+  .slice(0, 13);
 
 mkdirSync(DATA_DIR, { recursive: true });
 mkdirSync(LAYOUTS_DIR, { recursive: true });
@@ -77,7 +82,7 @@ function openMonWriter() {
   return createWriteStream(path.join(MON_DIR, `monitoring-${stamp}.jsonl`), { flags: "a" });
 }
 function writeMon(line) {
-  if (monWriter.bytesWritten / 1_048_576 > MAX_MBYTES) {   // > MB
+  if (monWriter.bytesWritten / 1_048_576 > MON_MAX_MBYTES) {   // > MB
     monWriter.end();
     monWriter = openMonWriter();
   }
@@ -87,18 +92,33 @@ function writeMon(line) {
 
 /* ---------- mapview tracks logging ---------- */
 const mapTrackWriters = {};
+const mapTrackFileCounts = {};
+
+function openMapTrackWriter(name) {
+  const count = mapTrackFileCounts[name] ?? 0;
+  const filename = `track-${SESSION_ID}-${name}-${count}.jsonl`;
+  return createWriteStream(
+    path.join(MAP_TRACKS_DIR, filename),
+    { flags: "a" }
+  );
+}
+
 function getMapTrackWriter(name) {
   if (!mapTrackWriters[name]) {
-    mapTrackWriters[name] = createWriteStream(
-      path.join(MAP_TRACKS_DIR, `track-${name}.jsonl`),
-      { flags: "a" }
-    );
+    mapTrackFileCounts[name] = 0;
+    mapTrackWriters[name] = openMapTrackWriter(name);
   }
   return mapTrackWriters[name];
 }
 
 function writeMapTrack(line, name = "undefined") {
-  const writer = getMapTrackWriter(name);
+  let writer = getMapTrackWriter(name);
+  if (writer.bytesWritten / 1_048_576 > MAP_MAX_MBYTES) {
+    writer.end();
+    mapTrackFileCounts[name] = (mapTrackFileCounts[name] ?? 0) + 1;
+    writer = openMapTrackWriter(name);
+    mapTrackWriters[name] = writer;
+  }
   writer.write(JSON.stringify(line) + "\n");
 }
 
