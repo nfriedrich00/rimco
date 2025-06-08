@@ -16,7 +16,7 @@ type DraftType =
   | "string-value";
 
 export default function Visualization() {
-  const { cards, addCard, updateCard, removeCard, loadLayout, saveLayout } = useViz();
+  const { cards, addCard, updateCard, removeCard, loadLayout, saveLayout, loadedLayout } = useViz();
   const [stage, setStage] = useState<"idle" | "pick" | "form" | "edit">("idle");
   const [draftType, setDraftType] = useState<DraftType | null>(null);
   const [editIdx, setEditIdx] = useState<number | null>(null);
@@ -107,21 +107,14 @@ export default function Visualization() {
 
   const { syncTopics } = useViz();
   useEffect(() => {
-    (async () => {
-      try {
-        await loadLayout("current");
-      } catch {
-        await loadLayout("default");
-      }
-      syncTopics();
-    })();
-  }, [loadLayout, syncTopics]);
+    loadLayout("current")
+      .catch(() => loadLayout("default"));
+  }, [loadLayout]);
 
   useEffect(() => {
-    if (cards.length === 0) return;
-    syncTopics();
+    if (cards.length === 0 || !loadedLayout) return;
     saveLayout("current", cards);
-  }, [cards, syncTopics, saveLayout]);
+  }, [cards, saveLayout, loadedLayout]);
 
   /* ---------- JSX ---------- */
   return (

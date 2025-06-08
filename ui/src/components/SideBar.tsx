@@ -1,9 +1,8 @@
 import { NavLink } from "react-router-dom";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Menu, ChevronLeft, LayoutGrid, BarChart, Joystick, MapIcon } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useViz } from "../store/useVizStore";
-import { useEffect } from "react";
 
 const nav = [
   { to: "/monitoring",    label: "Monitoring",    Icon: LayoutGrid },
@@ -16,12 +15,24 @@ export default function SideBar() {
   const [open, setOpen] = useState(true);
   const location = useLocation();
   const onViz = location.pathname === "/visualization";
-  const { saveLayout, loadLayout, cards } = useViz();
+  const { saveLayout, loadLayout, cards, loadedLayout, layoutDirty } = useViz();
   const [layoutNames, setNames] = useState<string[]>([]);
+
   useEffect(()=>{
     const api_url = import.meta.env.VITE_API_URL || '';
     fetch(`${api_url}/api/layouts`).then(r=>r.json()).then(setNames).catch(()=>setNames([]));
   },[]);
+
+  // recompute layoutNames after a save (so new name appears immediately)
+  useEffect(() => {
+    if (!layoutDirty && loadedLayout && !layoutNames.includes(loadedLayout)) {
+      setNames(n => [...n, loadedLayout]);
+    }
+  }, [layoutDirty, loadedLayout]);
+
+  const selectValue = layoutDirty
+    ? "__unsaved__"
+    : (loadedLayout || "");
 
   return (
     <aside
@@ -69,15 +80,17 @@ export default function SideBar() {
           </button>
           <select
             className="mx-2 mb-2 w-[85%] rounded px-3 py-3 border text-sm bg-white text-black font-bold text-center"
+            value={selectValue}
             onChange={(e) => {
-              const selected = e.target.value;
-              if (selected) {
-                loadLayout(selected);
-              }
+              const v = e.target.value;
+              if (v === "__unsaved__" || v === "") return;
+              loadLayout(v);
             }}
-            defaultValue=""
           >
             <option disabled value="">Load layout …</option>
+            {layoutDirty && (
+              <option value="__unsaved__" disabled>Unsaved Layout</option>
+            )}
             {layoutNames.map((n) => (
               <option key={n} value={n}>
                 {n}

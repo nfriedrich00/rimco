@@ -16,6 +16,8 @@ interface VizState {
   removeCard : (idx: number) => void;
   saveLayout : (name: string, cards: CardConfig[]) => Promise<void>;
   loadLayout : (name: string) => void;
+  loadedLayout: string | null;
+  layoutDirty: boolean;
 
   lastValue: Record<string, {data:unknown; stamp:number}>;
   staleMap:  Record<string,boolean>;
@@ -49,35 +51,44 @@ export const useViz = create<VizState>()((set, get) => {
     // If anything really flipped, update the store
     if (changed) set({ staleMap: next });
   }, 1000);
+  const syncTopics = debounce(async () => {
+    const cards = get().cards;
+    const map: Record<string, string> = {}; // topic -> msgType
+    cards.forEach(c=>{
+      if(c.type==="bool") map[c.topic] = "std_msgs/msg/Bool";
+      else if(c.type==="string-value") map[c.topic] = "std_msgs/msg/String";
+      else if(c.type.endsWith("value")) map[c.topic] =
+        c.type.startsWith("float")? "std_msgs/msg/Float32":"std_msgs/msg/Int16";
+      // extend for plots later
+    });
+    const api_url = import.meta.env.VITE_API_URL || '';
+
+    await fetch(`${api_url}/api/topics`,{
+      method:"POST",
+      headers:{ "Content-Type":"application/json" },
+      body: JSON.stringify({ topics: map }),
+    });
+  }, 500);   // wait 0.5 s after last change
 
   return {
   /* ------------------------------ subscribers ----------------------------- */
-      syncTopics: debounce(async ()=>{
-        const cards = get().cards;
-        const map: Record<string, string> = {}; // topic -> msgType
-        cards.forEach(c=>{
-          if(c.type==="bool") map[c.topic] = "std_msgs/msg/Bool";
-          else if(c.type==="string-value") map[c.topic] = "std_msgs/msg/String";
-          else if(c.type.endsWith("value")) map[c.topic] =
-            c.type.startsWith("float")? "std_msgs/msg/Float32":"std_msgs/msg/Int16";
-          // extend for plots later
-        });
-        const api_url = import.meta.env.VITE_API_URL || '';
-
-        await fetch(`${api_url}/api/topics`,{
-          method:"POST",
-          headers:{ "Content-Type":"application/json" },
-          body: JSON.stringify({ topics: map }),
-        });
-      }, 500),   // wait 0.5 s after last change
 
       /* ------------------------------ layout ------------------------------ */
       cards: [],
-      addCard: (c) => set((s) => ({ cards: [...s.cards, c] })),
-      updateCard: (i, c) =>
-        set((s) => ({ cards: s.cards.map((x, idx) => (idx === i ? c : x)) })),
-      removeCard: (i) =>
-        set((s) => ({ cards: s.cards.filter((_, idx) => idx !== i) })),
+      loadedLayout: null,
+      layoutDirty: false,
+      addCard: (c) => set((s) => ({
+        cards: [...s.cards, c],
+        layoutDirty: true
+      })),
+      updateCard: (i, c) => set((s) => ({
+        cards: s.cards.map((x, idx) => (idx === i ? c : x)),
+        layoutDirty: true
+      })),
+      removeCard: (i) => set((s) => ({
+        cards: s.cards.filter((_, idx) => idx !== i),
+        layoutDirty: true
+      })),
 
 
       saveLayout: async (name:string, cards:CardConfig[])=>{
@@ -87,13 +98,18 @@ export const useViz = create<VizState>()((set, get) => {
           headers:{ "Content-Type":"application/json"},
           body: JSON.stringify(cards),
         });
+        if (name !== "current") {
+          set((s) => ({ layoutDirty: false, loadedLayout: name }));
+        }
+        syncTopics();
       },
       loadLayout: async (name:string)=>{
         const api_url = import.meta.env.VITE_API_URL || '';
         const res = await fetch(`${api_url}/api/layouts/${name}`);
         if(res.ok){
           const cards = await res.json();
-          set({ cards });
+          set({ cards, layoutDirty: false, loadedLayout: name });
+          syncTopics();
         }
       },
 
