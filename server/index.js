@@ -122,10 +122,16 @@ function writeMapTrack(line, name = "undefined") {
   writer.write(JSON.stringify(line) + "\n");
 }
 
-const trackCache = {};               // { name:{tail:[[lat,lon]], yaw, color} }
+const trackCache = {};
 const TAIL_LEN = 3600;
-Object.entries(tracksCfg).forEach(([n,c])=>{
-  trackCache[n] = { tail:[], yaw:null, color:c.color||"#1e90ff" };
+Object.entries(tracksCfg).forEach(([name, config]) => {
+  trackCache[name] = {
+    tail: [],
+    last: undefined,
+    yaw: config.source === "odometry" ? 0 : null,
+    color: config.color,
+    displayName: config.displayName || name,
+  };
 });
 
 function enuToLatLon(e,n,lat0,lon0){

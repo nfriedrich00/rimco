@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import MapView from "../components/MapView";
-import type { Fix } from "../components/MapView";
 import { useRimco } from "../store/useRimcoStore";
 import { useMapEvents, Marker } from "react-leaflet";
 import type { LatLngLiteral } from "leaflet";
@@ -18,10 +17,14 @@ const defaultIcon = L.icon({
   iconAnchor: [12, 41],
 });
 
-function useFix(): Fix | null {
-  const last = useRimco(s => s.map.tracks.gnss.last);
-  if (!last) return null;
-  return { lat: last.lat, lon: last.lng };
+function useFix(): { lat: number, lon: number, yaw?: number } | null {
+  const track = useRimco(s => s.map.tracks["gnss"]);
+  if (!track?.last) return null;
+  return {
+    lat:  track.last.lat,
+    lon:  track.last.lng,
+    yaw:  track.yaw ?? 0
+  };
 }
 
 export default function Navigation() {

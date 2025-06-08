@@ -26,10 +26,10 @@ export function useBackendSync() {
     wsRef.current = ws;
 
     ws.onmessage = (e) => {
-      console.debug("Backend WS message", e.data);
       const m = JSON.parse(e.data);
       switch (m.kind) {
         case "snapshot":
+          useRimco.getState().setTracks(m.tracks);
           Object.entries(m.values).forEach(([t, d]) => setValue(t, d, Date.now()));
           Object.entries(m.monitoring).forEach(([n,v]:[string,any]) => setComp(n, v.level, v.stamp));
           setSettings(m.settings);

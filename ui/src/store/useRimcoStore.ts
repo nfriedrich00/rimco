@@ -3,22 +3,26 @@ import type { LatLngLiteral } from "leaflet";
 
 type TailPoint = [number, number];  // lat, lon
 
+interface TrackState {
+  tail: LatLngLiteral[];
+  last?: LatLngLiteral;
+  yaw?: number;
+  color: string;
+  displayName: string;
+}
+
 interface RimcoState {
   clock: number; // ms unix, used to trigger re-renders
   /* new map */
-  
+
 
 
   /* map */
   tail: TailPoint[];
   lastFix: { lat: number; lon: number; yaw: number } | null;
   map: {
-    show: { global: boolean; local: boolean; gnss: boolean };
-    tracks: {
-      global: { tail: LatLngLiteral[]; last?: LatLngLiteral; yaw?: number };
-      local:  { tail: LatLngLiteral[]; last?: LatLngLiteral; yaw?: number };
-      gnss:   { tail: LatLngLiteral[]; last?: LatLngLiteral };
-    };
+    show: Record<string, boolean>;
+    tracks: Record<string,TrackState>;
   };
 
   /* monitoring */
@@ -28,13 +32,9 @@ interface RimcoState {
   pushTail: (p: TailPoint, max?: number) => void;
   setFix: (lat: number, lon: number, yaw: number) => void;
   upsertComponent: (name: string, level: number, stamp: number) => void;
-  pushTrack: (
-    which: "global" | "local" | "gnss",
-    pos: LatLngLiteral,
-    yaw?: number,
-    max?: number
-  ) => void;
-  setTrackShow: (k: keyof RimcoState["map"]["show"], v: boolean) => void;
+  setTracks: (t: Record<string,TrackState>) => void;
+  pushTrack: (name: string, pos: LatLngLiteral, yaw?: number) => void;
+  setTrackShow: (name: string, v: boolean) => void;
   clearTracks: () => void;
 }
 
@@ -58,10 +58,19 @@ export const useRimco = create<RimcoState>((set, get) => {
   lastFix: null,
 
   map: {
-    show: { global: true, local: false, gnss: false },
-    tracks: { global: { tail: [] }, local: { tail: [] }, gnss: { tail: [] } },
+    show: {},
+    tracks: {}
   },
 
+  setTracks: (tracks) =>
+    set(() => ({
+      map: {
+        tracks,
+        show: Object.fromEntries(
+          Object.keys(tracks).map(name => [name, true])
+        )
+      }
+    })),
 
   pushTail: (p, max = 3600) =>
     set((s) => {
@@ -71,40 +80,46 @@ export const useRimco = create<RimcoState>((set, get) => {
 
   setFix: (lat, lon, yaw) => set({ lastFix: { lat, lon, yaw: yaw } }),
 
-  pushTrack: (
-    which: "global" | "local" | "gnss",
-    pos: LatLngLiteral,
-    yaw?: number,
-    max = 3600,
-  ) =>
-    set((s) => {
-      const t = s.map.tracks[which];
-      const tail = [...t.tail, pos].slice(-max);
+  pushTrack: (name, pos, yaw) =>
+    set(s => {
+      const t = s.map.tracks[name];
+      if (!t) return s;
+      const tail = [...t.tail, pos].slice(-3600);
       return {
         map: {
           ...s.map,
           tracks: {
             ...s.map.tracks,
-            [which]: { tail, last: pos, yaw: yaw ?? 0.0 },
-          },
-        },
+            [name]: {
+              ...t,
+              tail,
+              last: pos,
+              yaw: yaw != null ? yaw : t.yaw
+            }
+          }
+        }
       };
     }),
 
-  setTrackShow: (k: keyof RimcoState["map"]["show"], v: boolean) =>
-    set((s) => ({ map: { ...s.map, show: { ...s.map.show, [k]: v } } })),
-
-  clearTracks: () =>
-    set((s) => ({
+  setTrackShow: (name, v) =>
+    set(s => ({
       map: {
         ...s.map,
-        tracks: {
-          global: { tail: [] },
-          local: { tail: [] },
-          gnss: { tail: [] },
-        },
-      },
+        show: { ...s.map.show, [name]: v }
+      }
     })),
+
+  clearTracks: () =>
+      set(s => ({
+        map: {
+          ...s.map,
+          tracks: Object.fromEntries(
+            Object.entries(s.map.tracks).map(
+              ([name,t]) => [name, { ...t, tail: [] }] 
+            )
+          )
+        }
+      })),
 
 
   /* ---------------------------- monitoring ---------------------------- */
