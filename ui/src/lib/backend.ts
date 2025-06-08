@@ -5,6 +5,7 @@ import { useRimco } from "../store/useRimcoStore";
 
 export function useBackendSync() {
   const setValue    = useViz((s) => s.setValue);
+  const pushTail = useRimco((s) => s.pushTail);
   const setSettings = useViz((s) => s.setSettings);
   const wsRef = useRef<WebSocket | null>(null);
 
@@ -25,16 +26,27 @@ export function useBackendSync() {
     wsRef.current = ws;
 
     ws.onmessage = (e) => {
+      console.debug("Backend WS message", e.data);
       const m = JSON.parse(e.data);
-      if (m.kind === "snapshot") {
-        Object.entries(m.values).forEach(([t, d]) => setValue(t, d, Date.now()));
-        Object.entries(m.monitoring).forEach(([n,v]:[string,any]) => setComp(n, v.level, v.stamp));
-        setSettings(m.settings);
-      } else if (m.kind === "value") {
-        //setValue(m.topic, { data: m.data, stamp: Date.now() });
-        setValue(m.topic, m.data, Date.now());
-      } else if (m.kind === "monitoring") {
-        setComp(m.name, m.level, m.stamp);
+      switch (m.kind) {
+        case "snapshot":
+          Object.entries(m.values).forEach(([t, d]) => setValue(t, d, Date.now()));
+          Object.entries(m.monitoring).forEach(([n,v]:[string,any]) => setComp(n, v.level, v.stamp));
+          setSettings(m.settings);
+          break;
+        case "value":
+          setValue(m.topic, m.data, Date.now());
+          break;
+        case "monitoring":
+          setComp(m.name, m.level, m.stamp);
+          break;
+        case "track":
+          useRimco.getState().pushTrack(
+            m.name,
+            { lat: m.data.point[0], lng: m.data.point[1] },
+            m.data.yaw
+          );
+          break;
       }
     };
 
