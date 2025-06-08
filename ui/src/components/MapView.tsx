@@ -4,7 +4,7 @@ import {
   Polyline,
   Marker,
 } from "react-leaflet";
-import { useRef, useState } from "react";
+import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
 import type { LatLngLiteral } from "leaflet";
 import L from "leaflet";
@@ -27,6 +27,16 @@ export type Fix = { lat: number; lon: number };
 function Overlay() {
   const { map, setTrackShow, clearTracks } = useRimco();
   const [open, setOpen] = useState(false);
+
+  // close on ESC
+  useEffect(() => {
+    if (!open) return;
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setOpen(false);
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [open]);
 
   return (
     <div className="absolute bottom-2 left-2 z-[1000] text-sm">
