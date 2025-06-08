@@ -1,5 +1,4 @@
-import { useState } from "react";
-import { useTopic } from "../lib/ros";
+import { useViz } from "../store/useVizStore";
 
 export default function StringCard({
   topic,
@@ -8,15 +7,16 @@ export default function StringCard({
   topic: string;
   name: string;
 }) {
-  const [txt, setTxt] = useState<string>("—");
-  useTopic<any>(topic, "std_msgs/msg/String", (m) => setTxt(m.data));
+  const raw = useViz(s => s.lastValue[topic]?.data as string|undefined);
+  const stale = useViz(s => s.staleMap[topic] ?? true);
+
+  const display = (!stale && typeof raw === "string") ? raw : "-";
 
   return (
     <div className="rounded-lg shadow bg-white w-48 p-3 space-y-2">
       <h3 className="text-sm font-semibold">{name}</h3>
       <p className="break-words text-xs text-gray-500">{topic}</p>
-      <p className="text-base text-center mt-2 break-all">{txt}</p>
+      <p className="text-base text-center mt-2 break-all">{display}</p>
     </div>
   );
 }
-

@@ -1,10 +1,20 @@
 services:
+  backend:
+    build: ./server
+    volumes:
+      - ./config:/app/config
+      - ./data:/app/data
+    environment:
+      - ROSBRIDGE_URL=ws://localhost:9090
+    network_mode: host
+    depends_on:
+      - rosbridge
   rosbridge:
-    image: ros:humble
+    image: ros:jazzy
     command: >
       bash -c "
         apt update &&
-        apt install -y ros-humble-rosbridge-server ros-humble-rmw-cyclonedds-cpp &&
+        apt install -y ros-jazzy-rosbridge-server ros-jazzy-rmw-cyclonedds-cpp &&
         ros2 launch rosbridge_server rosbridge_websocket_launch.xml
       "
     environment:
@@ -14,13 +24,13 @@ services:
 
   # --- Dummy publishers for local dev ---
   dummies:
-    image: ros:humble
+    image: ros:jazzy
     volumes:
       - ./ros_dummies:/ros_dummies
     command: >
       bash -c "
         apt update &&
-        apt install -y ros-humble-rmw-cyclonedds-cpp &&
+        apt install -y ros-jazzy-rmw-cyclonedds-cpp &&
         export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp &&
         python3 /ros_dummies/diagnostic_heartbeat.py &
         python3 /ros_dummies/bool_beacon.py &
@@ -38,11 +48,11 @@ services:
     build: ./ui
     volumes:
       - ./ui:/app
-      - /app/node_modules
-    ports:
-      - "5173:5173"
+      - ./config:/app/config
+      - ./data:/app/data
     network_mode: host
     depends_on:
       - rosbridge
     environment:
-      - VITE_ROSBRIDGE_URL=ws://localhost:9090
+      - VITE_BACKEND_URL=ws://localhost:8080
+      - VITE_API_URL=http://localhost:8080

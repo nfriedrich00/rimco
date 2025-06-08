@@ -1,0 +1,3 @@
+[
+  { "type":"bool", "name":"Motor enable", "topic":"/demo/bool" }
+]

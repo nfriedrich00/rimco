@@ -8,9 +8,9 @@ import { useRef, useState } from "react";
 import type { ReactNode } from "react";
 import type { LatLngLiteral } from "leaflet";
 import L from "leaflet";
+import React from "react";
 
 import ArrowMarker from "./ArrowMarker";
-import { useTopic } from "../lib/ros";
 import { useRimco } from "../store/useRimcoStore";
 
 /* ---------------- helpers ---------------- */
@@ -27,6 +27,7 @@ export type Fix = { lat: number; lon: number };
 function Overlay() {
   const { map, setTrackShow, clearTracks } = useRimco();
   const [open, setOpen] = useState(false);
+
   return (
     <div className="absolute bottom-2 left-2 z-[1000] text-sm">
       {!open ? (
@@ -37,43 +38,31 @@ function Overlay() {
           ▲ options
         </button>
       ) : (
-        <div className="rounded bg-white/90 p-3 space-y-2 shadow">
-          {(["global", "local", "gnss"] as const).map((k) => (
-            <label key={k} className="block">
+        <div className="rounded bg-white p-3 space-y-2 shadow">
+          {Object.entries(map.tracks).map(([name, t]) => (
+            <label key={name} className="flex items-center gap-2">
               <input
                 type="checkbox"
-                checked={map.show[k]}
-                onChange={(e) => setTrackShow(k, e.target.checked)}
-              />{" "}
-              <span
-                className={
-                  k === "global"
-                    ? "text-blue-600"
-                    : k === "local"
-                    ? "text-green-600"
-                    : "text-red-600"
-                }
-              >
-                {k === "global"
-                  ? "Global odom"
-                  : k === "local"
-                  ? "Local odom"
-                  : "GNSS fix"}
-              </span>
+                checked={map.show[name]}
+                onChange={e => setTrackShow(name, e.target.checked)}
+              />
+              <span style={{ color: t.color }}>{t.displayName}</span>
             </label>
           ))}
-          <button
-            onClick={clearTracks}
-            className="mt-1 w-full rounded bg-gray-200 py-1"
-          >
-            Clear
-          </button>
-          <button
-            onClick={() => setOpen(false)}
-            className="mt-1 w-full rounded bg-gray-50 py-1"
-          >
-            Close
-          </button>
+          <div className="flex gap-2 mt-2">
+            <button
+              onClick={clearTracks}
+              className="flex-1 rounded bg-red-100 py-1 text-red-700 text-sm"
+            >
+              Clear
+            </button>
+            <button
+              onClick={() => setOpen(false)}
+              className="flex-1 rounded bg-gray-200 py-1 text-gray-800 text-sm"
+            >
+              Close
+            </button>
+          </div>
         </div>
       )}
     </div>
@@ -85,85 +74,58 @@ export default function MapView({
   fix,
   children,
 }: {
-  fix: Fix;
+  fix: { lat: number; lon: number };
   children?: ReactNode;
 }) {
-  const store = useRimco();
-  const mapRef = useRef<L.Map>(null);
-
-  /* ----- ROS subscriptions (always on) ----- */
-  useTopic<any>("/demo/odom", "nav_msgs/msg/Odometry", (m) => {
-    if (!mapRef.current) return;
-    const p = m.pose.pose.position;
-    const pos = enuToLatLon(mapRef.current, p.x, p.y);
-    const { x, y, z, w } = m.pose.pose.orientation;
-    const yaw = -Math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z)) + Math.PI / 2;
-    store.pushTrack("global", pos, yaw);
-  });
-
-  useTopic<any>("/demo/odom", "nav_msgs/msg/Odometry", (m) => {
-    console.log("gnss:", g.gnss.last, "globalYaw:", g.global.yaw, "localYaw:", g.local.yaw);
-    if (!mapRef.current) return;
-    const p = m.pose.pose.position;
-    const pos = enuToLatLon(mapRef.current, p.x, p.y);
-    const { x, y, z, w } = m.pose.pose.orientation;
-    const yaw = -Math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z)) + Math.PI / 2;
-    store.pushTrack("local", pos, yaw);
-  });
-
-  useTopic<any>("/demo/fix", "sensor_msgs/msg/NavSatFix", (m) => {
-    store.pushTrack("gnss", { lat: m.latitude, lng: m.longitude });
-  });
-
-  /* ----- render ----- */
-  const { map } = store;
-  const g = map.tracks;
+  const { map, setTrackShow, clearTracks } = useRimco();
+  const menu = (
+    <div className="absolute bottom-2 left-2 bg-white p-2 rounded shadow">
+      {(Object.entries(map.tracks) as [string,any][]).map(([name,t]) => (
+        <label key={name} className="block">
+          <input
+            type="checkbox"
+            checked={map.show[name]}
+            onChange={e => setTrackShow(name,e.target.checked)}
+          />{" "}
+          <span style={{ color: t.color }}>{t.displayName}</span>
+        </label>
+      ))}
+      <button onClick={clearTracks} className="mt-2 text-sm text-red-600">
+        Clear all
+      </button>
+    </div>
+  );
 
   return (
     <MapContainer
       center={[fix.lat, fix.lon]}
       zoom={18}
       style={{ height: "60vh", minHeight: "400px", width: "100%" }}
-      whenCreated={(m) => (mapRef.current = m)}
-      className="relative"
+      className="h-[60vh] w-full"
     >
       <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
 
-      {map.show.global && (
-        <>
-          <Polyline positions={g.gnss.tail} pathOptions={{ color: "#1e90ff" }} />
-          {g.gnss.last && (
-            <ArrowMarker
-              lat={g.gnss.last.lat}
-              lon={g.gnss.last.lng}
-              yaw={g.global.yaw ?? 0}
-              color="blue"
-            />
-          )}
-        </>
+      {Object.entries(map.tracks).map(([name, t]) =>
+        map.show[name] ? (
+          <React.Fragment key={name}>
+            <Polyline positions={t.tail} pathOptions={{ color: t.color }} />
+            {t.last && (
+              (t.yaw != null ? (
+                <ArrowMarker
+                  lat={t.last.lat}
+                  lon={t.last.lng}
+                  yaw={t.yaw}
+                  color={t.color}
+                />
+              ) : (
+                <Marker
+                  position={[t.last.lat, t.last.lng]}
+                />
+                ))
+              )}
+          </React.Fragment>
+        ) : null
       )}
-
-      {map.show.local && (
-        <>
-          <Polyline positions={g.gnss.tail} pathOptions={{ color: "#20c997" }} />
-          {g.local.yaw != null && g.gnss.last && (
-            <ArrowMarker
-              lat={g.gnss.last.lat}
-              lon={g.gnss.last.lng}
-              yaw={g.local.yaw ?? 0}
-              color="green"
-            />
-          )}
-        </>
-      )}
-
-      {map.show.gnss && (
-        <>
-          <Polyline positions={g.gnss.tail} pathOptions={{ color: "#e11d48" }} />
-          {g.gnss.last && <Marker position={g.gnss.last} />}
-        </>
-      )}
-
       <Overlay />
       {children}
     </MapContainer>

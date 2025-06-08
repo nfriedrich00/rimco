@@ -6,8 +6,10 @@ import Monitoring from "./pages/Monitoring";
 import Visualization from "./pages/Visualization";
 import ManualControl from "./pages/ManualControl";
 import Navigation from "./pages/Navigation";
+import { useBackendSync } from "./lib/backend";
 
 export default function App() {
+  useBackendSync();
   return (
     <BrowserRouter>
       <div className="flex">

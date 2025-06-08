@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import AddTile from "../components/AddTile";
 import Modal from "../components/Modal";
 import BoolCard from "../components/BoolCard";
@@ -16,7 +16,7 @@ type DraftType =
   | "string-value";
 
 export default function Visualization() {
-  const { cards, addCard, updateCard, removeCard } = useViz();
+  const { cards, addCard, updateCard, removeCard, loadLayout, saveLayout, loadedLayout } = useViz();
   const [stage, setStage] = useState<"idle" | "pick" | "form" | "edit">("idle");
   const [draftType, setDraftType] = useState<DraftType | null>(null);
   const [editIdx, setEditIdx] = useState<number | null>(null);
@@ -104,6 +104,17 @@ export default function Visualization() {
   };
 
   const fullBtn = "block w-full rounded-md border px-4 py-2 text-left hover:bg-gray-50";
+
+  const { syncTopics } = useViz();
+  useEffect(() => {
+    loadLayout("current")
+      .catch(() => loadLayout("default"));
+  }, [loadLayout]);
+
+  useEffect(() => {
+    if (cards.length === 0 || !loadedLayout) return;
+    saveLayout("current", cards);
+  }, [cards, saveLayout, loadedLayout]);
 
   /* ---------- JSX ---------- */
   return (
