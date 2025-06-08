@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
-import { useEffect, useState } from "react";
-import { Menu, ChevronLeft, LayoutGrid, BarChart, Joystick, MapIcon } from "lucide-react";
+import { useEffect, useState, useRef } from "react";
+import { Menu, ChevronLeft, LayoutGrid, BarChart, Joystick, MapIcon, Trash2 } from "lucide-react";
 import { useLocation } from "react-router-dom";
 import { useViz } from "../store/useVizStore";
 
@@ -17,10 +17,16 @@ export default function SideBar() {
   const onViz = location.pathname === "/visualization";
   const { saveLayout, loadLayout, cards, loadedLayout, layoutDirty } = useViz();
   const [layoutNames, setNames] = useState<string[]>([]);
+  const api_url = import.meta.env.VITE_API_URL || '';
+  const panelRef = useRef<HTMLDivElement>(null);
+  const [menuOpen, setMenuOpen] = useState(false);
+
 
   useEffect(()=>{
-    const api_url = import.meta.env.VITE_API_URL || '';
-    fetch(`${api_url}/api/layouts`).then(r=>r.json()).then(setNames).catch(()=>setNames([]));
+    fetch(`${api_url}/api/layouts`)
+    .then(r=>r.json())
+    .then(setNames)
+    .catch(()=>setNames([]));
   },[]);
 
   // recompute layoutNames after a save (so new name appears immediately)
@@ -29,13 +35,32 @@ export default function SideBar() {
       setNames(n => [...n, loadedLayout]);
     }
   }, [layoutDirty, loadedLayout]);
+  useEffect(() => {
+    const onClick = (e: MouseEvent) => {
+      if (panelRef.current?.contains(e.target as Node) === false) {
+        setMenuOpen(false);
+      }
+    };
+    window.addEventListener("mousedown", onClick);
+    return () => window.removeEventListener("mousedown", onClick);
+  }, []);
+
+  const onDelete = async (name: string) => {
+    if (!confirm(`Delete layout "${name}"?`)) return;
+    await fetch(`${api_url}/api/layouts/${name}`, { method: "DELETE" });
+    setNames(n => n.filter(x => x !== name));
+    // if the just‐deleted layout was loaded, fallback to default
+    if (loadedLayout === name) {
+      loadLayout("default");
+    }
+  };
 
   const selectValue = layoutDirty
     ? "__unsaved__"
     : (loadedLayout || "");
 
   return (
-    <aside
+    <div ref={panelRef}
       className={`h-screen flex flex-col transition-all
                   ${open ? "w-60" : "w-16"}
                   bg-brand text-white`}
@@ -73,32 +98,32 @@ export default function SideBar() {
           <button
             className="mx-2 mb-2 w-[85%] rounded px-3 py-6 bg-emerald-500 text-white text-sm font-bold text-center"
             onClick={()=>{
+              setMenuOpen(o => !o);
               const name = prompt("Save layout as…");
               if(name) saveLayout(name, cards);
             }}>
             Save layout
           </button>
-          <select
-            className="mx-2 mb-2 w-[85%] rounded px-3 py-3 border text-sm bg-white text-black font-bold text-center"
-            value={selectValue}
-            onChange={(e) => {
-              const v = e.target.value;
-              if (v === "__unsaved__" || v === "") return;
-              loadLayout(v);
-            }}
-          >
-            <option disabled value="">Load layout …</option>
-            {layoutDirty && (
-              <option value="__unsaved__" disabled>Unsaved Layout</option>
-            )}
-            {layoutNames.map((n) => (
-              <option key={n} value={n}>
-                {n}
-              </option>
-            ))}
-          </select>
+          {layoutNames.map(name => (
+            <div
+              key={name}
+              className="flex items-center justify-between px-3 py-2 hover:bg-gray-100 cursor-pointer"
+            >
+              <span onClick={() => { loadLayout(name); setMenuOpen(false); }}>
+                {name}
+              </span>
+              <Trash2
+                size={16}
+                className="text-red-500 hover:text-red-700"
+                onClick={e => {
+                  e.stopPropagation();
+                  onDelete(name);
+                }}
+              />
+            </div>
+          ))}
         </>
       )}
-    </aside>
+    </div>
   );
 }
