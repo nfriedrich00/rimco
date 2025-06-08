@@ -10,7 +10,6 @@ import type { LatLngLiteral } from "leaflet";
 import L from "leaflet";
 
 import ArrowMarker from "./ArrowMarker";
-import { useTopic } from "../lib/ros";
 import { useRimco } from "../store/useRimcoStore";
 
 /* ---------------- helpers ---------------- */
@@ -92,28 +91,6 @@ export default function MapView({
   const mapRef = useRef<L.Map>(null);
 
   /* ----- ROS subscriptions (always on) ----- */
-  useTopic<any>("/demo/odom", "nav_msgs/msg/Odometry", (m) => {
-    if (!mapRef.current) return;
-    const p = m.pose.pose.position;
-    const pos = enuToLatLon(mapRef.current, p.x, p.y);
-    const { x, y, z, w } = m.pose.pose.orientation;
-    const yaw = -Math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z)) + Math.PI / 2;
-    store.pushTrack("global", pos, yaw);
-  });
-
-  useTopic<any>("/demo/odom", "nav_msgs/msg/Odometry", (m) => {
-    console.log("gnss:", g.gnss.last, "globalYaw:", g.global.yaw, "localYaw:", g.local.yaw);
-    if (!mapRef.current) return;
-    const p = m.pose.pose.position;
-    const pos = enuToLatLon(mapRef.current, p.x, p.y);
-    const { x, y, z, w } = m.pose.pose.orientation;
-    const yaw = -Math.atan2(2 * (w * z + x * y), 1 - 2 * (y * y + z * z)) + Math.PI / 2;
-    store.pushTrack("local", pos, yaw);
-  });
-
-  useTopic<any>("/demo/fix", "sensor_msgs/msg/NavSatFix", (m) => {
-    store.pushTrack("gnss", { lat: m.latitude, lng: m.longitude });
-  });
 
   /* ----- render ----- */
   const { map } = store;

@@ -5,6 +5,10 @@ type TailPoint = [number, number];  // lat, lon
 
 interface RimcoState {
   clock: number; // ms unix, used to trigger re-renders
+  /* new map */
+  
+
+
   /* map */
   tail: TailPoint[];
   lastFix: { lat: number; lon: number; yaw: number } | null;

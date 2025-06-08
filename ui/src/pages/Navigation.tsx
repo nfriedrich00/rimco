@@ -2,7 +2,6 @@ import { useEffect, useState } from "react";
 import MapView from "../components/MapView";
 import type { Fix } from "../components/MapView";
 import { useRimco } from "../store/useRimcoStore";
-import { useTopic } from "../lib/ros";
 import { useMapEvents, Marker } from "react-leaflet";
 import type { LatLngLiteral } from "leaflet";
 
@@ -10,6 +9,7 @@ import L from "leaflet";
 import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
+
 const defaultIcon = L.icon({
   iconRetinaUrl: markerIcon2x,
   iconUrl: markerIcon,
@@ -19,17 +19,9 @@ const defaultIcon = L.icon({
 });
 
 function useFix(): Fix | null {
-  const { lastFix, setFix, pushTail } = useRimco();
-  useTopic<any>("/demo/fix","sensor_msgs/msg/NavSatFix", (m) => {
-    setFix(m.latitude,m.longitude,lastFix?.yaw??0);
-    pushTail([m.latitude,m.longitude],2000);
-  });
-  useTopic<any>("/demo/odom","nav_msgs/msg/Odometry", (m) => {
-    const { x,y,z,w } = m.pose.pose.orientation;
-    const yaw = Math.atan2(2*(w*z+x*y), 1 - 2*(y*y+z*z));
-    if (lastFix) setFix(lastFix.lat, lastFix.lon, yaw);
-  });
-  return lastFix
+  const last = useRimco(s => s.map.tracks.gnss.last);
+  if (!last) return null;
+  return { lat: last.lat, lon: last.lng };
 }
 
 export default function Navigation() {
