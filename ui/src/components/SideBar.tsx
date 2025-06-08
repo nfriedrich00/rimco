@@ -34,15 +34,30 @@ export default function SideBar() {
 
   const [openList, setOpenList] = useState(false);
   const panelRef = useRef<HTMLDivElement|null>(null);
+  const menuRef  = useRef<HTMLDivElement>(null);
 
+  /* close with mouse click outside the menu */
   useEffect(() => {
-    const onClick = (e: MouseEvent) => {
-      if (openList && panelRef.current &&
-         !panelRef.current.contains(e.target as Node))
+    function onClick (e: MouseEvent) {
+      if (
+        openList &&
+        menuRef.current &&
+        !menuRef.current.contains(e.target as Node)
+      ) {
         setOpenList(false);
+      }
     };
     window.addEventListener("mousedown", onClick);
     return () => window.removeEventListener("mousedown", onClick);
+  }, [openList]);
+
+  /* close with esc */
+  useEffect(() => {
+    function onKey(e: KeyboardEvent) {
+      if (e.key === "Escape" && openList) setOpenList(false);
+    }
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
   }, [openList]);
 
   /* delete */
@@ -107,7 +122,7 @@ export default function SideBar() {
 
           {/* dropdown */}
           {openList && (
-            <div
+            <div ref={menuRef}
               className="absolute left-0 right-0 bottom-20 mx-2
                          max-h-64 overflow-auto rounded border
                          bg-white text-black shadow-lg z-20">
