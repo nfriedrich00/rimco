@@ -168,6 +168,15 @@ app.post("/api/layouts/:name", async (req, reply) => {
   );
   reply.send({ ok: true });
 });
+app.delete("/api/layouts/:name", async (req, reply) => {
+  const file = path.join(LAYOUTS_DIR, req.params.name + ".json");
+  try {
+    await fs.unlink(file);
+    reply.send({ ok: true });
+  } catch (err) {
+    reply.status(500).send({ ok: false, error: err.message });
+  }
+});
 
 
 app.get("/ws", { websocket: true }, (client) => {
