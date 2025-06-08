@@ -33,12 +33,14 @@ const LAYOUTS_DIR = path.join(CONFIG_DIR, "layouts"); // visualization layouts
 const HISTORY_DIR = path.join(DATA_DIR, "history");   // history of specific topic values
 const LAST_FILE  = path.join(DATA_DIR, "last.json");  // last value for each topic
 const MON_DIR    = path.join(DATA_DIR, "monitoring"); // all monitoring data
+const MAP_TRACKS_DIR = path.join(DATA_DIR, "tracks");
 const MAX_MBYTES = 5;                                 // rotate monitoring file at 5 MB
 const FLUSH_INTERVAL = 5000;                          // flush last.json every 5 seconds
 
 mkdirSync(DATA_DIR, { recursive: true });
 mkdirSync(LAYOUTS_DIR, { recursive: true });
 mkdirSync(MON_DIR, { recursive: true });
+mkdirSync(MAP_TRACKS_DIR, { recursive:true });
 
 
 /* ---------- load topics list ---------- */
@@ -52,6 +54,11 @@ try {
 let settings = { stale_ttl_ms: 10000 };
 try { settings = JSON.parse(await fs.readFile("./config/settings.json","utf8")); }
 catch { console.warn("settings.json missing, using defaults"); }
+
+/* ---------- map view tracks ---------- */
+let tracksCfg = {};
+try { tracksCfg = JSON.parse(await fs.readFile("./config/tracks.json","utf8")); }
+catch { console.warn("tracks.json missing - no tracks plotted"); }
 
 /* ---------- rosbridge ---------- */
 const ros = new ROSLIB.Ros({ url: process.env.ROSBRIDGE_URL || "ws://rosbridge:9090" });
@@ -76,6 +83,53 @@ function writeMon(line) {
   }
   monWriter.write(JSON.stringify(line) + "\n");
 }
+
+
+/* ---------- mapview tracks logging ---------- */
+const trackCache = {};               // { name:{tail:[[lat,lon]], yaw, color} }
+const TAIL_LEN   = 2000;
+Object.entries(tracksCfg).forEach(([n,c])=>{
+  trackCache[n] = { tail:[], yaw:null, color:c.color||"#1e90ff" };
+});
+function enuToLatLon(e,n,lat0,lon0){
+  const R = 6378137;
+  const dLat = n / R;
+  const dLon = e / (R * Math.cos(Math.PI*lat0/180));
+  return [ lat0 + dLat*180/Math.PI, lon0 + dLon*180/Math.PI ];
+}
+function pushPoint(name,ll){
+  const t = trackCache[name]; if(!t) return;
+  t.tail.push(ll); if(t.tail.length>TAIL_LEN) t.tail.shift();
+  broadcast({kind:"track", name, data:{tail:t.tail, yaw:t.yaw, color:t.color}});
+}
+function pushYaw(name,q){
+  const {x,y,z,w}=q;
+  const yaw = -Math.atan2(2*(w*z+x*y),1-2*(y*y+z*z))+Math.PI/2;
+  const t = trackCache[name]; if(!t) return;
+  t.yaw = yaw;
+}
+/* create subscribers per track */
+Object.entries(tracksCfg).forEach(([name,cfg])=>{
+  console.debug(`Track ${name} using source ${cfg.source}`);
+  if(cfg.source==="navsat"){
+    new ROSLIB.Topic({ ros, name: cfg.pose_topic, messageType: "sensor_msgs/msg/NavSatFix" })
+      .subscribe(m=> pushPoint(name,[m.latitude,m.longitude]));
+  } else if(cfg.source==="odometry"){
+    /* pose → lat/lon */
+    const poseSub = new ROSLIB.Topic({ ros, name: cfg.pose_topic, messageType:"nav_msgs/msg/Odometry" });
+    poseSub.subscribe(m=>{
+      const {x,y} = m.pose.pose.position;
+      pushPoint(name, enuToLatLon(x,y,cfg.origin[0],cfg.origin[1]));
+      pushYaw(name, m.pose.pose.orientation);
+    });
+    if(cfg.orientation_topic && cfg.orientation_topic!==cfg.pose_topic){
+      new ROSLIB.Topic({ ros, name: cfg.orientation_topic, messageType:"nav_msgs/msg/Odometry" })
+        .subscribe(m=> pushYaw(name, m.pose.pose.orientation));
+    }
+  }
+});
+
+
 
 /* ---------- subscribers ---------- */
 const subs = {};         // { topic -> { rosTopic, count } }
@@ -182,7 +236,12 @@ app.delete("/api/layouts/:name", async (req, reply) => {
 app.get("/ws", { websocket: true }, (client) => {
   // send the snapshot on connection
   client.socket.send(
-    JSON.stringify({ kind: "snapshot", values: last, monitoring: lastMonitoring, settings })
+    JSON.stringify({
+      kind: "snapshot",
+      values: last,
+      monitoring: lastMonitoring,
+      tracks: trackCache,
+      settings })
   );
 
   // Register a dummy message listener so that incoming messages are logged.
@@ -193,7 +252,6 @@ app.get("/ws", { websocket: true }, (client) => {
   // Implement a periodic ping to keep the connection alive.
   const pingInterval = setInterval(() => {
     if (client.socket.readyState === client.socket.OPEN) {
-      // Sending a ping (you can choose the payload)
       client.socket.send(JSON.stringify({ kind: 'ping' }));
     }
   }, 30000); // Ping every 30 seconds
