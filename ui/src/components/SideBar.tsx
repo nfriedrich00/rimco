@@ -77,7 +77,7 @@ export default function SideBar() {
             }}
             defaultValue=""
           >
-            <option value="">Load layout …</option>
+            <option disabled value="">Load layout …</option>
             {layoutNames.map((n) => (
               <option key={n} value={n}>
                 {n}
