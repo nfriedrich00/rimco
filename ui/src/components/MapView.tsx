@@ -110,13 +110,19 @@ export default function MapView({
           <React.Fragment key={name}>
             <Polyline positions={t.tail} pathOptions={{ color: t.color }} />
             {t.last && (
-              <ArrowMarker
-                lat={t.last.lat}
-                lon={t.last.lng}
-                yaw={t.yaw ?? 0}
-                color={t.color}
-              />
-            )}
+              (t.yaw != null ? (
+                <ArrowMarker
+                  lat={t.last.lat}
+                  lon={t.last.lng}
+                  yaw={t.yaw}
+                  color={t.color}
+                />
+              ) : (
+                <Marker
+                  position={[t.last.lat, t.last.lng]}
+                />
+                ))
+              )}
           </React.Fragment>
         ) : null
       )}
