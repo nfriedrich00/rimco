@@ -41,11 +41,16 @@ export function useBackendSync() {
           setComp(m.name, m.level, m.stamp);
           break;
         case "track":
-          useRimco.getState().pushTrack(
-            m.name,
-            { lat: m.data.point[0], lng: m.data.point[1] },
-            m.data.yaw
-          );
+          const { point, yaw } = m.data;
+          if (point) {
+            useRimco.getState().pushTrack(
+              m.name,
+              { lat: point[0], lng: point[1] },
+              yaw
+            );
+          } else if (yaw != null) {
+            useRimco.getState().pushTrack(m.name, undefined, yaw);
+          }
           break;
       }
     };

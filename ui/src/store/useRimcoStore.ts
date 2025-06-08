@@ -33,7 +33,7 @@ interface RimcoState {
   setFix: (lat: number, lon: number, yaw: number) => void;
   upsertComponent: (name: string, level: number, stamp: number) => void;
   setTracks: (t: Record<string,TrackState>) => void;
-  pushTrack: (name: string, pos: LatLngLiteral, yaw?: number) => void;
+  pushTrack: (name: string, pos?: LatLngLiteral, yaw?: number) => void;
   setTrackShow: (name: string, v: boolean) => void;
   clearTracks: () => void;
 }
@@ -84,7 +84,8 @@ export const useRimco = create<RimcoState>((set, get) => {
     set(s => {
       const t = s.map.tracks[name];
       if (!t) return s;
-      const tail = [...t.tail, pos].slice(-3600);
+      const newTail = pos ? [...t.tail, pos].slice(-3600) : t.tail;
+      const newLast = pos ?? t.last;
       return {
         map: {
           ...s.map,
@@ -92,8 +93,8 @@ export const useRimco = create<RimcoState>((set, get) => {
             ...s.map.tracks,
             [name]: {
               ...t,
-              tail,
-              last: pos,
+              tail: newTail,
+              last: newLast,
               yaw: yaw != null ? yaw : t.yaw
             }
           }
