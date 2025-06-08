@@ -86,27 +86,66 @@ function writeMon(line) {
 
 
 /* ---------- mapview tracks logging ---------- */
+const mapTrackWriters = {};
+function getMapTrackWriter(name) {
+  if (!mapTrackWriters[name]) {
+    mapTrackWriters[name] = createWriteStream(
+      path.join(MAP_TRACKS_DIR, `track-${name}.jsonl`),
+      { flags: "a" }
+    );
+  }
+  return mapTrackWriters[name];
+}
+
+function writeMapTrack(line, name = "undefined") {
+  const writer = getMapTrackWriter(name);
+  writer.write(JSON.stringify(line) + "\n");
+}
+
 const trackCache = {};               // { name:{tail:[[lat,lon]], yaw, color} }
-const TAIL_LEN   = 2000;
+const TAIL_LEN = 3600;
 Object.entries(tracksCfg).forEach(([n,c])=>{
   trackCache[n] = { tail:[], yaw:null, color:c.color||"#1e90ff" };
 });
+
 function enuToLatLon(e,n,lat0,lon0){
   const R = 6378137;
   const dLat = n / R;
   const dLon = e / (R * Math.cos(Math.PI*lat0/180));
   return [ lat0 + dLat*180/Math.PI, lon0 + dLon*180/Math.PI ];
 }
-function pushPoint(name,ll){
-  const t = trackCache[name]; if(!t) return;
-  t.tail.push(ll); if(t.tail.length>TAIL_LEN) t.tail.shift();
-  broadcast({kind:"track", name, data:{tail:t.tail, yaw:t.yaw, color:t.color}});
+
+function pushPoint(name, ll) {
+  const t = trackCache[name];
+  if(!t) return;
+
+  t.tail.push(ll);
+  if(t.tail.length>TAIL_LEN) t.tail.shift();
+
+  writeMapTrack({ point: ll, yaw: t.yaw, color: t.color }, name);
+
+  broadcast({
+    kind: "track",
+    name,
+    data: { point: ll, yaw: t.yaw, color: t.color }
+  });
 }
-function pushYaw(name,q){
-  const {x,y,z,w}=q;
+
+function pushYaw(name, q) {
+  const { x, y, z, w } = q;
   const yaw = -Math.atan2(2*(w*z+x*y),1-2*(y*y+z*z))+Math.PI/2;
-  const t = trackCache[name]; if(!t) return;
+  const t = trackCache[name];
+  if(!t) return;
+
   t.yaw = yaw;
+
+  writeMapTrack({ yaw: yaw }, name);
+
+  broadcast({
+    kind: "track",
+    name,
+    data: { yaw: yaw }
+  });
 }
 /* create subscribers per track */
 Object.entries(tracksCfg).forEach(([name,cfg])=>{
