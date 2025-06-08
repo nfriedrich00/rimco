@@ -1,0 +1,24 @@
+{
+  "global_odom": {
+    "displayName": "Global Odom",
+    "pose_topic": "/odometry/global",
+    "orientation_topic": "/odometry/global",
+    "source": "odometry",
+    "origin": [50.925879, 13.331465],
+    "color": "#1e90ff"
+  },
+  "local_odom": {
+    "displayName": "Local Odom",
+    "pose_topic": "/odometry/local",
+    "orientation_topic": "/odometry/local",
+    "source": "odometry",
+    "origin": [50.925879, 13.331465],
+    "color": "#20c997"
+  },
+  "gnss": {
+    "displayName": "GNSS Fix",
+    "pose_topic": "/demo/fix",
+    "source": "navsat",
+    "color": "#e11d48"
+  }
+}
