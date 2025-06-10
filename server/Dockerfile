@@ -2,13 +2,11 @@ FROM node:20-alpine
 
 WORKDIR /app
 
-# only production deps
 COPY package.json .
 RUN npm install --omit=dev
 
-# app source
-COPY index.js .
+COPY dist ./dist
 
 ENV PORT=8080
 
-CMD ["node", "index.js"]
+CMD ["node", "dist/index.js"]
