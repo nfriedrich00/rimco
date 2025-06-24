@@ -21,28 +21,6 @@ services:
       - ROS_DOMAIN_ID=0
       - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp
     network_mode: host
-
-  # --- Dummy publishers for local dev ---
-  dummies:
-    image: ros:jazzy
-    volumes:
-      - ./ros_dummies:/ros_dummies
-    command: >
-      bash -c "
-        apt update &&
-        apt install -y ros-jazzy-rmw-cyclonedds-cpp &&
-        export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp &&
-        python3 /ros_dummies/diagnostic_heartbeat.py &
-        python3 /ros_dummies/bool_beacon.py &
-        python3 /ros_dummies/navsat_circle.py &
-        python3 /ros_dummies/odom_circle.py
-      "
-    environment:
-      - ROS_DOMAIN_ID=0
-#      - RMW_IMPLEMENTATION=rmw_cyclonedds_cpp 
-# Set this manually in the command only after the installation of cyclonedds
-    network_mode: host
-
   # --- React dev server (hot-reload) ---
   ui:
     build: ./ui
