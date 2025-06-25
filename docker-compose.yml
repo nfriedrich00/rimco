@@ -4,6 +4,12 @@ services:
     volumes:
       - ./config:/app/config
       - ./data:/app/data
+      - /var/run/docker.sock:/var/run/docker.sock # hopefully TEMPORARY fix
+      # this docker.sock is necessary so that the backend can call ros2 commands
+      # to be executed in the rosbridge container to speed up prototyping by 
+      # not using the non-working roslibjs for the action clients
+      # roslibjs would be better, maybe rclnodejs but this would also require
+      # modifications to the robot to provide more action clients
     environment:
       - ROSBRIDGE_URL=ws://localhost:9090
     network_mode: host
@@ -14,7 +20,7 @@ services:
     command: >
       bash -c "
         apt update &&
-        apt install -y ros-jazzy-rosbridge-server ros-jazzy-rmw-cyclonedds-cpp &&
+        apt install -y ros-jazzy-rosbridge-server ros-jazzy-rmw-cyclonedds-cpp ros-jazzy-nav2-msgs &&
         ros2 launch rosbridge_server rosbridge_websocket_launch.xml
       "
     environment:

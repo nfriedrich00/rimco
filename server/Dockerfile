@@ -1,4 +1,6 @@
 FROM node:20-alpine
+RUN apk add --no-cache docker-cli
+# hopefully a TEMPORARY fix see docker-compose.yml
 
 WORKDIR /app
 

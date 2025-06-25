@@ -347,6 +347,23 @@ app.post("/api/topics", async (req, reply)=>{
   reply.send({ ok:true, current:Object.keys(subs) });
 });
 
+
+/* POST /api/command GENERAL PURPOSE COMMAND LINE INTERFACE */
+app.post("/api/ros2", async (req, reply) => {
+  const { cmd } = req.body;
+  try {
+    const { stdout, stderr } = await execPromise(
+      `docker exec -i rimco-rosbridge-1 bash -lc "source /opt/ros/jazzy/setup.bash && ros2 ${cmd}"`
+    );
+    console.log("🦄  ok:", stdout, stderr);
+    reply.send({ ok: true, stdout, stderr });
+  } catch (err) {
+    console.error("🦄  cmd failed:", err);
+    reply.code(500).send({ ok: false, error: err.message });
+  }
+});
+
+
 function broadcast(obj) {
   const s = JSON.stringify(obj);
   (app.websocketServer?.clients || []).forEach((c) =>

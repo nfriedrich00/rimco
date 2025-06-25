@@ -29,6 +29,8 @@ function useFix(): { lat: number, lon: number, yaw?: number } | null {
 
 export default function Navigation() {
   const fix = useFix();
+  const api_url = import.meta.env.VITE_API_URL || '';
+
 
   // pickMode = true => user is picking a target
   const [pickMode, setPick] = useState(false);
@@ -57,11 +59,27 @@ export default function Navigation() {
   // Helper: Confirm pick
   // return from pick mode to default
   // after sending the navigate-to-pose action request (todo)
-  const handleConfirm = () => {
-    if (!target) return; // guard
-    setPick(false);
-    setTarget(null);
-  };
+  const handleConfirm = async () => {
+  if (!target) return;
+
+  const navRes = await fetch(`${api_url}/api/ros2`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      cmd: `action send_goal /follow_gps_waypoints ` +
+           `nav2_msgs/action/FollowGPSWaypoints ` +
+           `'{gps_poses: [{position: {latitude: ${target.lat}, longitude: ${target.lng}}}]}'`
+    }),
+  });
+  if (!navRes.ok) {
+    console.error("navigate_to_pose failed", await navRes.text());
+    return;
+  }
+  console.log("goal sent", await navRes.json());
+
+  setPick(false);
+  setTarget(null);
+};
 
   // Map click listener
   function ClickCapture({ onPick }: { onPick: (p: LatLngLiteral) => void }) {
