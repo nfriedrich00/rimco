@@ -382,9 +382,28 @@ app.get("/api/ros2-stream", async (req, reply) => {
     "-lc",
     `source /opt/ros/jazzy/setup.bash && export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp && ros2 ${cmd}`
   ];
-  console.log("Running command:", fullCmd.join(" "));
 
   const proc = spawn("docker", fullCmd);
+
+  req.raw.on("close", async () => {
+    // kill the local docker‐exec wrapper pid to prevent leaks
+    proc.kill("SIGTERM");
+
+    // also kill any leftover ros2 action clients for the correct action server inside the container
+    const m = cmd.match(/action\s+send_goal\s+(\S+)/);
+    if (m) {
+      const server = m[1];
+      try {
+        await execPromise(
+          `docker exec -i rimco-rosbridge-1 ` +
+          `bash -lc "pkill -f 'ros2 action send_goal ${server}'"`
+        );
+      } catch (err) {
+        console.warn(`  → no leftover client for ${server} to kill`);
+      }
+    }
+    });
+
   const rl = readline.createInterface({ input: proc.stdout });
 
   // helper to send an SSE
@@ -405,7 +424,7 @@ app.get("/api/ros2-stream", async (req, reply) => {
     if (line.match(/Goal accepted/)) {
       send("accepted", { msg: "Goal accepted" });
     }
-    if (line.match(/Goal finished/)) {
+    if (line.match(/SUCCEEDED/)) {
       send("finished", { msg: "Goal finished" });
     }
   });

@@ -77,8 +77,23 @@ export default function Navigation() {
     const url = `${api_url}/api/ros2-stream?cmd=${encodeURIComponent(cmd)}`;
     const es = new EventSource(url);
 
+    // ESC to cancel the SSE
+    const onEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        cleanup("Command cancelled", "error");
+      }
+    };
+    window.addEventListener("keydown", onEsc);
+
+    const cleanup = (msg?:string, type?:"success"|"error") => {
+      setBusy(false);
+      if (msg) toast[type!](msg);
+      es.close();
+      window.removeEventListener("keydown", onEsc);
+    };
+
     es.addEventListener("start", () => toast.info("Navigation: Request sent"));
-    es.addEventListener("waiting", (e) => toast.info(`Navigation: ${JSON.parse(e.data).msg}`));
+    //es.addEventListener("waiting", (e) => toast.info(`Navigation: ${JSON.parse(e.data).msg}`));
     es.addEventListener("accepted", () => {
       toast.success("Navigation: Goal accepted");
       setBusy(false);
@@ -92,15 +107,6 @@ export default function Navigation() {
     });
     es.addEventListener("end",      () => es.close());
 
-    // ESC to cancel the SSE
-    const onEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
-        toast.error("Command cancelled");
-        setBusy(false);
-        es.close();
-      }
-    };
-    window.addEventListener("keydown", onEsc);
     es.addEventListener("close", () => window.removeEventListener("keydown", onEsc));
   };
 
