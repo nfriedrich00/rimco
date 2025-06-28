@@ -3,6 +3,7 @@ import {
   TileLayer,
   Polyline,
   Marker,
+  ScaleControl,
 } from "react-leaflet";
 import { useState, useEffect } from "react";
 import type { ReactNode } from "react";
@@ -43,7 +44,7 @@ function Overlay() {
   }, [open]);
 
   return (
-    <div className="absolute bottom-2 left-2 z-[1000] text-sm">
+    <div className="absolute bottom-8 left-2 z-[1000] text-sm">
       {!open ? (
         <button
           onClick={() => setOpen(true)}
@@ -114,7 +115,6 @@ export default function MapView({
     <MapContainer
       center={[fix.lat, fix.lon]}
       zoom={18}
-      maxZoom={22}
       style={{ height: "60vh", minHeight: "400px", width: "100%" }}
       className="h-[60vh] w-full"
     >
@@ -122,8 +122,9 @@ export default function MapView({
         tileSize={512}
         zoomOffset={-1}
         maxNativeZoom={18}  // actual tiles go to 18
-        maxZoom={22}      
+        maxZoom={24}      
       />
+      <ScaleControl position="bottomleft" metric={true} imperial={false} />
 
       {Object.entries(map.tracks).map(([name, t]) =>
       map.show[name] ? (
