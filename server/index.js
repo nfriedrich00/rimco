@@ -424,8 +424,11 @@ app.get("/api/ros2-stream", async (req, reply) => {
     if (line.match(/Goal accepted/)) {
       send("accepted", { msg: "Goal accepted" });
     }
-    if (line.match(/SUCCEEDED/)) {
-      send("finished", { msg: "Goal finished" });
+    if (/Goal finished with status: SUCCEEDED/.test(line)) {
+      send("success", { msg: "Goal finished" });
+    }
+    if (/Goal finished with status: FAILED/.test(line)) {
+      send("failure", { msg: "Goal failed" });
     }
   });
 

@@ -99,13 +99,12 @@ export default function Navigation() {
     //es.addEventListener("waiting", (e) => toast.info(`Navigation: ${JSON.parse(e.data).msg}`));
     es.addEventListener("accepted", () => {
       accepted = true;
-      toast.success("Navigation: Goal accepted");
+      toast.info("Navigation: Goal accepted");
       setPick(false);
       setBusy(false);
       window.removeEventListener("keydown", onEsc);
-      es.close();
     });
-    es.addEventListener("finished", () => toast.info("Navigation: Goal finished"));
+    es.addEventListener("success", () => toast.success("Navigation: Goal finished"));
     es.addEventListener("error", (e) => {
       toast.error(JSON.parse((e as MessageEvent).data).msg || "Navigation: Error");
       cleanup();
