@@ -9,6 +9,7 @@ import markerIcon2x from "leaflet/dist/images/marker-icon-2x.png";
 import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 import { toast } from "react-toastify";
+import LoadingOverlay from "react-loading-overlay-ts";
 
 const defaultIcon = L.icon({
   iconRetinaUrl: markerIcon2x,
@@ -77,7 +78,7 @@ export default function Navigation() {
     const es = new EventSource(url);
 
     es.addEventListener("start", () => toast.info("Navigation: Request sent"));
-    es.addEventListener("waiting", (e) => toast.info(JSON.parse(e.data).msg));
+    es.addEventListener("waiting", (e) => toast.info(`Navigation: ${JSON.parse(e.data).msg}`));
     es.addEventListener("accepted", () => {
       toast.success("Navigation: Goal accepted");
       setBusy(false);
@@ -118,24 +119,25 @@ export default function Navigation() {
   {/* -------------------------------- PAGE -------------------------------- */}
   if (!fix) return <p className="p-6">Waiting for robot pose…</p>;
   return (
-    <div className="relative">
-      {busy && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex items-center justify-center">
-          <div className="spinner animate-spin" />
-        </div>
-      )}
-
-      {busy && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 z-40 flex flex-col items-center justify-center">
-          {/* spinner */}
-          <div
-            className="w-12 h-12 border-4 border-t-transparent border-white rounded-full animate-spin"
-            aria-label="Loading"
-          />
-          <span className="mt-2 text-white">Sending command…</span>
-        </div>
-      )}
-
+    <LoadingOverlay
+      active={busy}
+      spinner
+      text="Waiting for action server…"
+      styles={{
+        overlay: base => ({
+          ...base,
+          position: "fixed",
+          inset: 0,
+          backgroundColor: "rgba(0,0,0,0.5)",
+          zIndex: 9999,
+        }),
+        content: base => ({
+          ...base,
+          color: "white",
+          textAlign: "center",
+        }),
+      }}
+    >
       <div className="p-6 grid grid-cols-1 lg:grid-cols-[1fr_auto] gap-4">
 
         {/* ------------------------------- MAP ------------------------------ */}
@@ -221,6 +223,6 @@ export default function Navigation() {
           </div>
         </div>
       </div>
-    </div>
+    </LoadingOverlay>
   );
 }
