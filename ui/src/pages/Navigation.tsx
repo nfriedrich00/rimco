@@ -85,13 +85,21 @@ export default function Navigation() {
       }
     }, 10000);
 
-    // ESC to cancel the SSE
+    // ESC to cancel the request (not the actual action)
     const onEsc = (e: KeyboardEvent) => {
       if (!accepted && e.key === "Escape") {
-        cleanup("Command cancelled", "error");
+        cleanup("Navigation: Request cancelled", "error");
       }
     };
     window.addEventListener("keydown", onEsc);
+
+    // pointer (click or tap) to cancel the request (not the actual action)
+    const onPointer = () => {
+      if (!accepted) {
+        cleanup("Navigation: Request cancelled", "error");
+      }
+    };
+    window.addEventListener("pointerdown", onPointer);
 
     const cleanup = (msg?:string, type?:"success"|"error") => {
       clearTimeout(timeoutId);
@@ -99,6 +107,7 @@ export default function Navigation() {
       if (msg) toast[type!](msg);
       es.close();
       window.removeEventListener("keydown", onEsc);
+      window.removeEventListener("pointerdown", onPointer);
       setPick(false);
       setTarget(null);
     };
