@@ -91,6 +91,8 @@ export default function Navigation() {
       if (msg) toast[type!](msg);
       es.close();
       window.removeEventListener("keydown", onEsc);
+      setPick(false);
+      setTarget(null);
     };
 
     es.addEventListener("start", () => toast.info("Navigation: Request sent"));
@@ -98,6 +100,7 @@ export default function Navigation() {
     es.addEventListener("accepted", () => {
       accepted = true;
       toast.success("Navigation: Goal accepted");
+      setPick(false);
       setBusy(false);
       window.removeEventListener("keydown", onEsc);
       es.close();
