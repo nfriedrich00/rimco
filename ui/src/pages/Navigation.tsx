@@ -64,7 +64,6 @@ export default function Navigation() {
 
   // Helper: Confirm pick
   // return from pick mode to default
-  // after sending the navigate-to-pose action request (todo)
   const handleConfirm = () => {
     if (!target || busy) return;
     setBusy(true);
@@ -77,8 +76,16 @@ export default function Navigation() {
     const url = `${api_url}/api/ros2-stream?cmd=${encodeURIComponent(cmd)}`;
     const es = new EventSource(url);
 
-    // ESC to cancel the SSE
+    // 5 s timeout for waiting on action server
+    // add settings for this todo
     let accepted = false;
+    const timeoutId = setTimeout(() => {
+      if (!accepted) {
+        cleanup("Navigation: Request timed out", "error");
+      }
+    }, 10000);
+
+    // ESC to cancel the SSE
     const onEsc = (e: KeyboardEvent) => {
       if (!accepted && e.key === "Escape") {
         cleanup("Command cancelled", "error");
@@ -87,6 +94,7 @@ export default function Navigation() {
     window.addEventListener("keydown", onEsc);
 
     const cleanup = (msg?:string, type?:"success"|"error") => {
+      clearTimeout(timeoutId);
       setBusy(false);
       if (msg) toast[type!](msg);
       es.close();
@@ -99,6 +107,7 @@ export default function Navigation() {
     //es.addEventListener("waiting", (e) => toast.info(`Navigation: ${JSON.parse(e.data).msg}`));
     es.addEventListener("accepted", () => {
       accepted = true;
+      clearTimeout(timeoutId);
       toast.info("Navigation: Goal accepted");
       setPick(false);
       setBusy(false);
