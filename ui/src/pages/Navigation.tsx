@@ -40,7 +40,7 @@ export default function Navigation() {
   const [selectedFile, setFile] = useState<string | null>(null);
 
   const [busy, setBusy] = useState(false);
-  const [notif, setNotif] = useState<{ msg:string; type:"success"|"error" }|null>(null);
+  const [status, setStatus] = useState<"Ready" | "Request sent" | "Action running">("Ready");
 
 
   // Esc key is the same as clicking cancel
@@ -67,6 +67,7 @@ export default function Navigation() {
   const handleConfirm = () => {
     if (!target || busy) return;
     setBusy(true);
+    setStatus("Request sent");
 
     const cmd = 
       `action send_goal /follow_gps_waypoints ` +
@@ -104,6 +105,7 @@ export default function Navigation() {
     const cleanup = (msg?:string, type?:"success"|"error") => {
       clearTimeout(timeoutId);
       setBusy(false);
+      setStatus("Ready");
       if (msg) toast[type!](msg);
       es.close();
       window.removeEventListener("keydown", onEsc);
@@ -112,18 +114,33 @@ export default function Navigation() {
       setTarget(null);
     };
 
-    es.addEventListener("start", () => toast.info("Navigation: Request sent"));
-    //es.addEventListener("waiting", (e) => toast.info(`Navigation: ${JSON.parse(e.data).msg}`));
+    es.addEventListener("start", () => {
+      setStatus("Request sent");
+      toast.info("Navigation: Request sent");
+    });
+
     es.addEventListener("accepted", () => {
       accepted = true;
       clearTimeout(timeoutId);
+      setStatus("Action running");
       toast.info("Navigation: Goal accepted");
       setPick(false);
       setBusy(false);
       window.removeEventListener("keydown", onEsc);
     });
-    es.addEventListener("success", () => toast.success("Navigation: Goal finished"));
+    es.addEventListener("success", () => {
+      setStatus("Ready");
+      toast.success("Navigation: Goal finished");
+    });
+
+    es.addEventListener("failure", (e) => {
+      setStatus("Ready");
+      toast.error(JSON.parse((e as MessageEvent).data).msg || "Navigation: Error");
+      cleanup();
+    });
+
     es.addEventListener("error", (e) => {
+      setStatus("Ready");
       toast.error(JSON.parse((e as MessageEvent).data).msg || "Navigation: Error");
       cleanup();
     });
@@ -221,7 +238,8 @@ export default function Navigation() {
             )}
 
             <p className="text-sm text-gray-500">
-              Status: &nbsp;<span className="text-gray-400">—</span>
+              Status: &nbsp;
+              <span className="text-gray-700">{status}</span>
             </p>
           </div>
 
