@@ -15,6 +15,10 @@ import { useRimco } from "../store/useRimcoStore";
 
 /* ---------------- helpers ---------------- */
 const Z = 18;
+const mapbox_token = import.meta.env.VITE_MAPBOX_TOKEN;
+const tiles_url = mapbox_token
+  ? `https://api.mapbox.com/styles/v1/mapbox/streets-v12/tiles/512/{z}/{x}/{y}?access_token=${mapbox_token}`
+  : "https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png";
 const enuToLatLon = (map: L.Map, x: number, y: number): LatLngLiteral => {
   const c = map.getCenter();
   const p0 = map.project(c, Z);
@@ -110,31 +114,37 @@ export default function MapView({
     <MapContainer
       center={[fix.lat, fix.lon]}
       zoom={18}
+      maxZoom={22}
       style={{ height: "60vh", minHeight: "400px", width: "100%" }}
       className="h-[60vh] w-full"
     >
-      <TileLayer url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png" />
+      <TileLayer url={tiles_url}
+        tileSize={512}
+        zoomOffset={-1}
+        maxNativeZoom={18}  // actual tiles go to 18
+        maxZoom={22}      
+      />
 
       {Object.entries(map.tracks).map(([name, t]) =>
-        map.show[name] ? (
-          <React.Fragment key={name}>
-            <Polyline positions={t.tail} pathOptions={{ color: t.color }} />
-            {t.last && (
-              (t.yaw != null ? (
-                <ArrowMarker
-                  lat={t.last.lat}
-                  lon={t.last.lng}
-                  yaw={t.yaw}
-                  color={t.color}
-                />
-              ) : (
-                <Marker
-                  position={[t.last.lat, t.last.lng]}
-                />
-                ))
-              )}
-          </React.Fragment>
-        ) : null
+      map.show[name] ? (
+        <React.Fragment key={name}>
+        <Polyline positions={t.tail} pathOptions={{ color: t.color }} />
+        {t.last && (
+          (t.yaw != null ? (
+          <ArrowMarker
+            lat={t.last.lat}
+            lon={t.last.lng}
+            yaw={t.yaw}
+            color={t.color}
+          />
+          ) : (
+          <Marker
+            position={[t.last.lat, t.last.lng]}
+          />
+          ))
+          )}
+        </React.Fragment>
+      ) : null
       )}
       <Overlay />
       {children}
