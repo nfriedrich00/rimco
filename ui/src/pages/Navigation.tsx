@@ -78,8 +78,9 @@ export default function Navigation() {
     const es = new EventSource(url);
 
     // ESC to cancel the SSE
+    let accepted = false;
     const onEsc = (e: KeyboardEvent) => {
-      if (e.key === "Escape") {
+      if (!accepted && e.key === "Escape") {
         cleanup("Command cancelled", "error");
       }
     };
@@ -95,17 +96,18 @@ export default function Navigation() {
     es.addEventListener("start", () => toast.info("Navigation: Request sent"));
     //es.addEventListener("waiting", (e) => toast.info(`Navigation: ${JSON.parse(e.data).msg}`));
     es.addEventListener("accepted", () => {
+      accepted = true;
       toast.success("Navigation: Goal accepted");
       setBusy(false);
+      window.removeEventListener("keydown", onEsc);
       es.close();
     });
     es.addEventListener("finished", () => toast.info("Navigation: Goal finished"));
-    es.addEventListener("error",    (e) => {
+    es.addEventListener("error", (e) => {
       toast.error(JSON.parse((e as MessageEvent).data).msg || "Navigation: Error");
-      setBusy(false);
-      es.close();
+      cleanup();
     });
-    es.addEventListener("end",      () => es.close());
+    es.addEventListener("end", () => cleanup());
 
     es.addEventListener("close", () => window.removeEventListener("keydown", onEsc));
   };
