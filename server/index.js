@@ -353,7 +353,7 @@ app.post("/api/ros2", async (req, reply) => {
   const { cmd } = req.body;
   try {
     const { stdout, stderr } = await execPromise(
-      `docker exec -i rimco-rosbridge-1 bash -lc "source /opt/ros/jazzy/setup.bash && ros2 ${cmd}"`
+      `docker exec -i rimco-rosbridge-1 bash -lc "source /opt/ros/jazzy/setup.bash && export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp && ros2 ${cmd}"`
     );
     console.log("🦄  ok:", stdout, stderr);
     reply.send({ ok: true, stdout, stderr });
