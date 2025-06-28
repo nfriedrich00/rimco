@@ -7,6 +7,8 @@ import Visualization from "./pages/Visualization";
 import ManualControl from "./pages/ManualControl";
 import Navigation from "./pages/Navigation";
 import { useBackendSync } from "./lib/backend";
+import { ToastContainer } from "react-toastify";
+import "react-toastify/dist/ReactToastify.css";
 
 export default function App() {
   useBackendSync();
@@ -27,6 +29,7 @@ export default function App() {
           </main>
         </div>
       </div>
+    <ToastContainer position="top-center" />
     </BrowserRouter>
   );
 }

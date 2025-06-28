@@ -5,8 +5,9 @@ import fs from "fs/promises";
 import ROSLIB from "roslib";
 import path from "path";
 import { mkdirSync, statSync, createWriteStream } from "fs";
-import { exec } from "child_process";
+import { exec, spawn } from "child_process";
 import util from "util";
+import readline from "readline";
 
 const execPromise = util.promisify(exec);
 
@@ -361,6 +362,62 @@ app.post("/api/ros2", async (req, reply) => {
     console.error("🦄  cmd failed:", err);
     reply.code(500).send({ ok: false, error: err.message });
   }
+});
+
+app.get("/api/ros2-stream", async (req, reply) => {
+  const cmd = String(req.query.cmd || "");
+  // headers for SSE
+  reply.raw.writeHead(200, {
+    "Content-Type": "text/event-stream",
+    "Cache-Control": "no-cache",
+    Connection: "keep-alive",
+    "Access-Control-Allow-Origin": "*"
+  });
+
+  const fullCmd = [
+    "exec",
+    "-i",
+    "rimco-rosbridge-1",
+    "bash",
+    "-lc",
+    `source /opt/ros/jazzy/setup.bash && export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp && ros2 ${cmd}`
+  ];
+  console.log("Running command:", fullCmd.join(" "));
+
+  const proc = spawn("docker", fullCmd);
+  const rl = readline.createInterface({ input: proc.stdout });
+
+  // helper to send an SSE
+  const send = (event, data = {}) => {
+    reply.raw.write(`event: ${event}\n`);
+    reply.raw.write(`data: ${JSON.stringify(data)}\n\n`);
+  };
+
+  send("start", { msg: "Request sent" });
+
+  rl.on("line", (line) => {
+    // echo raw line
+    send("line", { line });
+
+    if (line.match(/Waiting for an action server to become available/)) {
+      send("waiting", { msg: "Waiting for action server…" });
+    }
+    if (line.match(/Goal accepted/)) {
+      send("accepted", { msg: "Goal accepted" });
+    }
+    if (line.match(/Goal finished/)) {
+      send("finished", { msg: "Goal finished" });
+    }
+  });
+
+  proc.stderr.on("data", (b) => {
+    send("error", { msg: b.toString() });
+  });
+
+  proc.on("close", (code) => {
+    send("end", { code });
+    reply.raw.end();
+  });
 });
 
 
