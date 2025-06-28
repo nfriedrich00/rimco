@@ -62,6 +62,23 @@ export default function Navigation() {
     setTarget(null);
   };
 
+  const handleStop = async () => {
+    if (status !== "Action running") return;
+    setBusy(false);
+    setStatus("Ready");
+    try {
+      const res = await fetch(`${api_url}/api/navigation/action-cancel`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ server: "/follow_gps_waypoints" }),
+      });
+      if (res.ok) toast.warn("Navigation: Stopped");
+      else toast.error("Failed to stop navigation");
+    } catch {
+      toast.error("Failed to stop navigation");
+    }
+  };
+
   // Helper: Confirm pick
   // return from pick mode to default
   const handleConfirm = () => {
@@ -74,7 +91,7 @@ export default function Navigation() {
       `nav2_msgs/action/FollowGPSWaypoints ` +
       `'{gps_poses: [{position: {latitude: ${target.lat}, longitude: ${target.lng}}}]}'`;
 
-    const url = `${api_url}/api/ros2-stream?cmd=${encodeURIComponent(cmd)}`;
+    const url = `${api_url}/api/ros2-action?cmd=${encodeURIComponent(cmd)}`;
     const es = new EventSource(url);
 
     // 5 s timeout for waiting on action server
@@ -201,19 +218,28 @@ export default function Navigation() {
           <div className="bg-white shadow rounded-lg p-4 space-y-3">
             <h3 className="font-semibold">Pick-and-Go</h3>
 
-            <button
-              onClick={() => {
-                // toggle pickMode on
-                setPick(true);
-                setTarget(null);
-              }}
-              disabled={pickMode}
-              className={`w-full rounded-md py-2 ${
-                pickMode ? "bg-gray-300 cursor-not-allowed" : "bg-emerald-600"
-              } text-white`}
-            >
-              Select goal
-            </button>
+            {status === "Action running" ? (
+              <button
+                onClick={handleStop}
+                className="w-full rounded-md py-2 bg-red-600 text-white"
+              >
+                Stop
+              </button>
+            ) : (
+              <button
+                onClick={() => {
+                  // toggle pickMode on
+                  setPick(true);
+                  setTarget(null);
+                }}
+                disabled={pickMode}
+                className={`w-full rounded-md py-2 ${
+                  pickMode ? "bg-gray-300 cursor-not-allowed" : "bg-emerald-600"
+                } text-white`}
+              >
+                Select goal
+              </button>
+            )}
 
             {pickMode && (
               <>

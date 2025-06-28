@@ -364,7 +364,7 @@ app.post("/api/ros2", async (req, reply) => {
   }
 });
 
-app.get("/api/ros2-stream", async (req, reply) => {
+app.get("/api/ros2-action", async (req, reply) => {
   const cmd = String(req.query.cmd || "");
   // headers for SSE
   reply.raw.writeHead(200, {
@@ -440,6 +440,21 @@ app.get("/api/ros2-stream", async (req, reply) => {
     send("end", { code });
     reply.raw.end();
   });
+});
+
+app.post("/api/navigation/action-cancel", async (req, reply) => {
+  const { server } = req.body;
+  try {
+    // only kill clients for this action‐server inside the container
+    await execPromise(
+      `docker exec -i rimco-rosbridge-1 ` +
+      `bash -lc "source /opt/ros/jazzy/setup.bash && export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp && ros2 service call ${server}/_action/cancel_goal action_msgs/srv/CancelGoal"`
+    );
+    reply.send({ ok: true });
+  } catch (err) {
+    console.warn("cancel failed:", err);
+    reply.code(500).send({ ok: false, error: err.message });
+  }
 });
 
 
