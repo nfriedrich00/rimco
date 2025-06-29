@@ -43,6 +43,8 @@ export default function Navigation() {
 
   const [waypoints, setWaypoints] = useState<string[]>([]);
   const [selectedFile, setFile] = useState<string | null>(null);
+  const [forceFullRouteParameter, setForceFullRouteParameter] = useState(false);
+  const [reverseRouteParameter, setReverseRouteParameter] = useState(false);
 
   // Esc key is the same as clicking cancel
   useEffect(() => {
@@ -178,9 +180,14 @@ export default function Navigation() {
   // To launch the waypoint follower
   const handleLaunch = async () => {
     if (!selectedFile) return;
-    const cmd =
-      `run claudi_navigation waypoint_follower ` +
-      `--ros-args -p waypoints_yaml_filepath:=/navigation/waypoints/${selectedFile}`;
+    const cmd = [
+      "run claudi_navigation waypoint_follower",
+      "--ros-args",
+      `-p waypoints_yaml_filepath:=/navigation/waypoints/${selectedFile}`,
+      `-p force_full_route:=${forceFullRouteParameter}`,
+      `-p reverse_waypoints:=${reverseRouteParameter}`
+    ].join(" ");
+
     try {
       const res = await fetch(`${api_url}/api/ros2-sim`, {
         method: "POST",
@@ -315,6 +322,50 @@ export default function Navigation() {
                   <option key={f} value={f}>{f}</option>
                 ))}
               </select>
+
+              {/* boolean options */}
+              <div className="space-y-2 mt-2">
+                {/* force full route */}
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="forceFullRoute"
+                    checked={forceFullRouteParameter}
+                    onChange={(e) => setForceFullRouteParameter(e.target.checked)}
+                  />
+                  <label htmlFor="forceFullRoute" className="text-sm">
+                    Force full route
+                  </label>
+                  <div className="relative group">
+                    <span className="w-4 h-4 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 text-xs cursor-help">
+                      ?
+                    </span>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 hidden group-hover:block bg-gray-700 text-white text-xs p-2 rounded w-64 max-w-md whitespace-normal z-10">
+                      By default navigation starts at the closest waypoint and skips earlier ones. This forces the robot to start at the first waypoint.
+                    </div>
+                  </div>
+                </div>
+                {/* reverse waypoints */}
+                <div className="flex items-center space-x-2">
+                  <input
+                    type="checkbox"
+                    id="reverseWaypoints"
+                    checked={reverseRouteParameter}
+                    onChange={(e) => setReverseRouteParameter(e.target.checked)}
+                  />
+                  <label htmlFor="reverseWaypoints" className="text-sm">
+                    Reverse waypoints
+                  </label>
+                  <div className="relative group">
+                    <span className="w-4 h-4 flex items-center justify-center rounded-full bg-gray-200 text-gray-600 text-xs cursor-help">
+                      ?
+                    </span>
+                    <div className="absolute bottom-full left-1/2 transform -translate-x-1/2 mb-3 hidden group-hover:block bg-gray-700 text-white text-xs p-2 rounded w-64 max-w-md z-10">
+                      Reverse the order of the waypoints before planning the route.
+                    </div>
+                  </div>
+                </div>
+              </div>
 
             <button
               onClick={handleLaunch}
