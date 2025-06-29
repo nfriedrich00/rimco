@@ -376,6 +376,21 @@ app.post("/api/ros2", async (req, reply) => {
     reply.code(500).send({ ok: false, error: err.message });
   }
 });
+/* the following api executes the ros2 command on the simulation docker container 
+  so only use for the evaluation and fix later to make it work with the real robot */
+app.post("/api/ros2-sim", async (req, reply) => {
+  const { cmd } = req.body;
+  try {
+    const { stdout, stderr } = await execPromise(
+      `docker exec -i rimco-simulation bash -lc "source /home/ubuntu/ros2/dmc_11_ws/install/setup.bash && export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp && ros2 ${cmd}"`
+    );
+    console.log("🦄  ok:", stdout, stderr);
+    reply.send({ ok: true, stdout, stderr });
+  } catch (err) {
+    console.error("🦄  cmd failed:", err);
+    reply.code(500).send({ ok: false, error: err.message });
+  }
+});
 
 app.get("/api/ros2-action", async (req, reply) => {
   const cmd = String(req.query.cmd || "");
@@ -467,6 +482,17 @@ app.post("/api/navigation/action-cancel", async (req, reply) => {
   } catch (err) {
     console.warn("cancel failed:", err);
     reply.code(500).send({ ok: false, error: err.message });
+  }
+});
+
+// GET list of waypoint YAMLs
+app.get("/api/waypoints", async (req, reply) => {
+  try {
+    const files = await fs.readdir("/navigation/waypoints");
+    const yamls = files.filter(f => f.endsWith(".yaml") || f.endsWith(".yml"));
+    reply.send(yamls);
+  } catch (err) {
+    reply.code(500).send({ ok:false, error: err.message });
   }
 });
 

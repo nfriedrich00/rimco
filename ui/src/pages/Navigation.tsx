@@ -37,11 +37,12 @@ export default function Navigation() {
   // pickMode = true => user is picking a target
   const [pickMode, setPick] = useState(false);
   const [target, setTarget] = useState<LatLngLiteral | null>(null);
-  const [selectedFile, setFile] = useState<string | null>(null);
 
   const [busy, setBusy] = useState(false);
   const [status, setStatus] = useState<"Ready" | "Request sent" | "Action running">("Ready");
 
+  const [waypoints, setWaypoints] = useState<string[]>([]);
+  const [selectedFile, setFile] = useState<string | null>(null);
 
   // Esc key is the same as clicking cancel
   useEffect(() => {
@@ -52,6 +53,14 @@ export default function Navigation() {
     };
     window.addEventListener("keydown", handleKeyDown);
     return () => window.removeEventListener("keydown", handleKeyDown);
+  }, []);
+
+  // load YAML list on mount
+  useEffect(() => {
+    fetch(`${api_url}/api/waypoints`)
+      .then(r => r.json())
+      .then(setWaypoints)
+      .catch(() => toast.error("Navigation: Failed to load waypoints"));
   }, []);
 
   // Helper: Cancel pick
@@ -164,6 +173,29 @@ export default function Navigation() {
     es.addEventListener("end", () => cleanup());
 
     es.addEventListener("close", () => window.removeEventListener("keydown", onEsc));
+  };
+
+  // To launch the waypoint follower
+  const handleLaunch = async () => {
+    if (!selectedFile) return;
+    const cmd =
+      `run claudi_navigation waypoint_follower ` +
+      `--ros-args -p waypoints_yaml_filepath:=/navigation/waypoints/${selectedFile}`;
+    try {
+      const res = await fetch(`${api_url}/api/ros2-sim`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ cmd }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        toast.success("Waypoint follower launched");
+      } else {
+        toast.error(data.error || "Failed to launch waypoint follower");
+      }
+    } catch (err) {
+      toast.error("Failed to launch waypoint follower");
+    }
   };
 
   // Map click listener
@@ -279,16 +311,17 @@ export default function Navigation() {
               onChange={e=>setFile(e.target.value||null)}
             >
               <option value="">Choose YAML…</option>
-              {/* TODO: populate via backend */}
-              <option value="demo.yaml">demo.yaml</option>
-            </select>
+                {waypoints.map(f => (
+                  <option key={f} value={f}>{f}</option>
+                ))}
+              </select>
 
             <button
+              onClick={handleLaunch}
               disabled={!selectedFile}
               className={`w-full rounded-md py-2 ${
                 selectedFile?"bg-brand text-white":"bg-gray-300 text-gray-600 cursor-not-allowed"
               }`}
-              /* onClick={launchWaypoints} */
             >
               Launch
             </button>
