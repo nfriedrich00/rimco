@@ -497,6 +497,59 @@ app.get("/api/waypoints", async (req, reply) => {
 });
 
 
+// Sensors page
+// Get lifecyle nodes and states and autoconfigure
+app.get("/api/lifecycle", async (req, reply) => {
+  try {
+    // run `ros2 lifecycle get` inside your rosbridge container
+    const { stdout } = await execPromise(
+      `docker exec -i rimco-rosbridge-1 bash -lc ` +
+      `"source /opt/ros/jazzy/setup.bash && ` +
+      `export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp && ` +
+      `ros2 lifecycle get 2>/dev/null | grep '^/wrapper/'"`,
+      { timeout: 5000 }
+    );
+
+    const lines = stdout.split("\n").filter(Boolean);
+    const nodes = [];
+    for (const line of lines) {
+      // e.g. "/wrapper/gnss_wrapper_node: active [3]"
+      const m = line.match(/^(\/wrapper\/[^:]+):\s+(\w+)/);
+      if (!m) continue;
+      const [_, name, state] = m;
+      nodes.push({ name, state });
+      // auto-configure any unconfigured nodes so they can be activated
+      if (state === "unconfigured") {
+        await execPromise(
+          `docker exec -i rimco-rosbridge-1 bash -lc ` +
+          `"source /opt/ros/jazzy/setup.bash && export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp && ros2 lifecycle set ${name} configure"`,
+          { timeout: 5000 }
+        );
+      }
+    }
+    reply.send(nodes);
+  } catch (err) {
+    console.error("LIFECYCLE GET failed:", err);
+    reply.code(500).send({ error: err.message });
+  }
+});
+
+// POST change one node’s lifecycle: { name, action: "activate"|"deactivate" }
+app.post("/api/lifecycle", async (req, reply) => {
+  const { name, action } = req.body;
+  try {
+    await execPromise(
+      `docker exec -i rimco-rosbridge-1 bash -lc ` +
+      `"source /opt/ros/jazzy/setup.bash && export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp && ros2 lifecycle set ${name} ${action}"`,
+      { timeout: 5000 }
+    );
+    reply.send({ ok: true });
+  } catch (err) {
+    console.error("LIFECYCLE SET failed:", err);
+    reply.code(500).send({ error: err.message });
+  }
+});
+
 function broadcast(obj) {
   const s = JSON.stringify(obj);
   (app.websocketServer?.clients || []).forEach((c) =>

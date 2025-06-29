@@ -6,6 +6,7 @@ import Monitoring from "./pages/Monitoring";
 import Visualization from "./pages/Visualization";
 import ManualControl from "./pages/ManualControl";
 import Navigation from "./pages/Navigation";
+import Sensors from "./pages/Sensors";
 import { useBackendSync } from "./lib/backend";
 import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
@@ -25,6 +26,7 @@ export default function App() {
               <Route path="/visualization" element={<Visualization />} />
               <Route path="/manual_control" element={<ManualControl />} />
               <Route path="/navigation" element={<Navigation />} />
+              <Route path="/sensors" element={<Sensors />} />
             </Routes>
           </main>
         </div>

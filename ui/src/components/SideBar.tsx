@@ -1,13 +1,14 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
-import { Menu, ChevronLeft, LayoutGrid, BarChart, Joystick, MapIcon, Trash2 } from "lucide-react";
+import { Menu, ChevronLeft, LayoutGrid, BarChart, Joystick, MapIcon, Trash2, Thermometer } from "lucide-react";
 import { useViz } from "../store/useVizStore";
 
 const nav = [
   { to: "/monitoring",    label: "Monitoring",    Icon: LayoutGrid },
   { to: "/visualization", label: "Visualization", Icon: BarChart },
   { to: "/manual_control",label: "Manual Control",Icon: Joystick },
-  { to: "/navigation",    label:"Navigation",     Icon: MapIcon }
+  { to: "/navigation",    label:"Navigation",     Icon: MapIcon },
+  { to: "/sensors",       label: "Sensors",       Icon: Thermometer },
 ];
 
 export default function SideBar() {
