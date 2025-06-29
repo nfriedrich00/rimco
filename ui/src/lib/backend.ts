@@ -52,6 +52,9 @@ export function useBackendSync() {
             useRimco.getState().pushTrack(m.name, undefined, yaw);
           }
           break;
+        case "trackClear":
+          useRimco.getState().clearTail(m.name);
+          break;
       }
     };
 

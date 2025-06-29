@@ -41,6 +41,7 @@ interface RimcoState {
 
   /* actions */
   pushTail: (p: TailPoint, max?: number) => void;
+  clearTail: (name: string) => void;
   setFix: (lat: number, lon: number, yaw: number) => void;
   upsertComponent: (name: string, level: number, stamp: number) => void;
   setTracks: (t: Record<string,TrackState>) => void;
@@ -87,6 +88,25 @@ export const useRimco = create<RimcoState>((set, get) => {
     set((s) => {
       const tail = [...s.tail, p].slice(-max);
       return { tail };
+    }),
+
+  clearTail: (name) =>
+    set((s) => {
+      const tracks = { ...s.map.tracks };
+      if (tracks[name]) {
+        tracks[name] = {
+          ...tracks[name],
+          tail: [],
+          last: undefined,
+          yaw: undefined
+        }
+      }
+      return {
+        map: {
+          ...s.map,
+          tracks
+        }
+      };
     }),
 
   setFix: (lat, lon, yaw) => set({ lastFix: { lat, lon, yaw: yaw } }),

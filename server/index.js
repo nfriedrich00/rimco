@@ -179,20 +179,33 @@ Object.entries(tracksCfg).forEach(([name,cfg])=>{
   console.debug(`Track ${name} using source ${cfg.source}`);
   if(cfg.source==="navsat"){
     new ROSLIB.Topic({ ros, name: cfg.pose_topic, messageType: "sensor_msgs/msg/NavSatFix" })
-      .subscribe(m=> pushPoint(name,[m.latitude,m.longitude]));
-  } else if(cfg.source==="odometry"){
+      .subscribe(m => pushPoint(name,[m.latitude,m.longitude]));
+  } else if (cfg.source==="odometry"){
     /* pose → lat/lon */
-    const poseSub = new ROSLIB.Topic({ ros, name: cfg.pose_topic, messageType:"nav_msgs/msg/Odometry" });
-    poseSub.subscribe(m=>{
+    const poseSub = new ROSLIB.Topic({ ros, name: cfg.pose_topic, messageType: "nav_msgs/msg/Odometry" });
+    poseSub.subscribe(m => {
       const {x,y} = m.pose.pose.position;
       pushPoint(name, enuToLatLon(x,y,cfg.origin[0],cfg.origin[1]));
       pushYaw(name, m.pose.pose.orientation);
     });
-    if(cfg.orientation_topic && cfg.orientation_topic!==cfg.pose_topic){
+    if (cfg.orientation_topic && cfg.orientation_topic!==cfg.pose_topic){
       new ROSLIB.Topic({ ros, name: cfg.orientation_topic, messageType:"nav_msgs/msg/Odometry" })
         .subscribe(m=> pushYaw(name, m.pose.pose.orientation));
     }
-  }
+  } else if (cfg.source==="path") {
+      const pathSub = new ROSLIB.Topic({ ros, name: cfg.pose_topic, messageType: "nav_msgs/msg/Path" });
+      pathSub.subscribe(m => {
+        // clear the old path
+        trackCache[name].tail = [];
+        broadcast({ kind: "trackClear", name });
+        // for each PoseStamped in the Path
+        m.poses.forEach((ps) => {
+          const { x, y } = ps.pose.position;
+          // use the same enuToLatLon as your odom code
+          pushPoint(name, enuToLatLon(x, y, cfg.origin[0], cfg.origin[1]));
+        });
+      });
+    }
 });
 
 

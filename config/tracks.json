@@ -20,5 +20,12 @@
     "pose_topic": "/emlid/fix",
     "source": "navsat",
     "color": "#e11d48"
+  },
+  "plan": {
+    "displayName": "Plan",
+    "pose_topic": "/plan",
+    "source": "path",
+    "origin": [50.925689, 13.331667],
+    "color": "#90ee90"
   }
 }
