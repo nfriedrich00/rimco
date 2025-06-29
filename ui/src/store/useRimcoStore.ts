@@ -1,6 +1,17 @@
 import { create } from "zustand";
 import type { LatLngLiteral } from "leaflet";
 
+// only record if moved at least 2 cm
+const toRad = (deg: number) => (deg * Math.PI) / 180
+const getDistance = (a: LatLngLiteral, b: LatLngLiteral): number => {
+  const R = 6_371_000 // m
+  const φ1 = toRad(a.lat), φ2 = toRad(b.lat)
+  const Δφ = toRad(b.lat - a.lat), Δλ = toRad(b.lng - a.lng)
+  const sinΔφ = Math.sin(Δφ/2), sinΔλ = Math.sin(Δλ/2)
+  const aa = sinΔφ*sinΔφ + Math.cos(φ1)*Math.cos(φ2)*sinΔλ*sinΔλ
+  return R * 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1-aa))
+}
+
 type TailPoint = [number, number];  // lat, lon
 
 interface TrackState {
@@ -72,7 +83,7 @@ export const useRimco = create<RimcoState>((set, get) => {
       }
     })),
 
-  pushTail: (p, max = 3600) =>
+  pushTail: (p, max = 36000) =>
     set((s) => {
       const tail = [...s.tail, p].slice(-max);
       return { tail };
@@ -83,7 +94,14 @@ export const useRimco = create<RimcoState>((set, get) => {
   pushTrack: (name, pos, yaw) =>
     set(s => {
       const t = s.map.tracks[name];
-      if (!t) return s;
+      if (!t || !pos) return s;
+
+      if (t.last) {
+        if (getDistance(t.last, pos) < 0.01) {
+          return s
+        }
+      }
+
       const newTail = pos ? [...t.tail, pos].slice(-3600) : t.tail;
       const newLast = pos ?? t.last;
       return {
