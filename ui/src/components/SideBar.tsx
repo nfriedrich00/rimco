@@ -39,6 +39,20 @@ export default function SideBar() {
       .catch(()=>setNames([]));
   },[]);
 
+  // close Settings on Esc key
+  useEffect(() => {
+    if (!settingsOpen) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setSettingsOpen(false);
+      }
+    };
+    window.addEventListener("keydown", handleEsc);
+    return () => {
+      window.removeEventListener("keydown", handleEsc);
+    };
+  }, [settingsOpen]);
+
   useEffect(() => {
     if (!layoutDirty && loadedLayout && !layoutNames.includes(loadedLayout)) {
       setNames(n => [...n, loadedLayout]);
