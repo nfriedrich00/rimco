@@ -5,9 +5,9 @@ import { useViz } from "../store/useVizStore";
 
 const nav = [
   { to: "/monitoring", label: "Monitoring", Icon: LayoutGrid },
+  { to: "/sensors", label: "Component control", Icon: Thermometer },
   { to: "/visualization", label: "Visualization", Icon: BarChart },
   { to: "/navigation", label:"Navigation", Icon: MapIcon },
-  { to: "/sensors", label: "Sensors", Icon: Thermometer },
 ];
 
 export default function SideBar() {
