@@ -14,6 +14,14 @@ function formatWrapperName(name: string): string {
   return spaced.charAt(0).toUpperCase() + spaced.slice(1);
 }
 
+function normalizeName(s: string) {
+  return s
+    .replace(/^\/wrapper\//, "")
+    .replace(/_wrapper_node$/, "")
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, "");
+}
+
 export default function Sensors() {
   const api_url = import.meta.env.VITE_API_URL || "";
   const ttl = useViz((s) => s.settings.stale_ttl_ms);
@@ -35,6 +43,29 @@ export default function Sensors() {
     2: "bg-danger",
     3: "bg-warn",
   };
+
+  // auto‐link any wrapper that hasn’t yet been manually mapped
+  useEffect(() => {
+    if (wrappers.length === 0) return;
+    wrappers.forEach((w) => {
+      if (w.monitoring !== null) return;
+      const key = normalizeName(w.name);
+      const matches = Object.keys(components).filter(
+        (mon) => normalizeName(mon) === key
+      );
+      if (matches.length === 1) {
+        const mon = matches[0];
+        // 1) update store
+        setMapping(w.name, mon);
+        // 2) persist to backend config
+        fetch(`${api_url}/api/wrapper-mapping`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ [w.name]: mon }),
+        }).catch(console.error);
+      }
+    });
+  }, [wrappers, components]);
 
   // close modal on Escape
   useEffect(() => {
