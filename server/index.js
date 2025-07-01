@@ -275,7 +275,7 @@ await app.register(ws);                        // websocket is to make messages 
 /* ------------------------------ API endpoints ----------------------------- */
 app.get("/api/settings", async (_, reply) => {
   try {
-    const raw = await fs.readFile(CFG, "utf8");
+    const raw = await fs.readFile(GENERAL_SETTINGS_FILE, "utf8");
     reply.send(JSON.parse(raw));
   } catch {
     reply.send({ stale_ttl_ms: 10000 });
@@ -284,7 +284,7 @@ app.get("/api/settings", async (_, reply) => {
 
 app.post("/api/settings", async (req, reply) => {
   const cfg = req.body;
-  await fs.writeFile(CFG, JSON.stringify(cfg, null, 2));
+  await fs.writeFile(GENERAL_SETTINGS_FILE, JSON.stringify(cfg, null, 2));
   reply.send(cfg);
 });
 /* ----------------- GET all filenames in ./config/layouts/ ----------------- */
