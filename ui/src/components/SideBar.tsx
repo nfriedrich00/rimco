@@ -4,11 +4,10 @@ import { Menu, ChevronLeft, LayoutGrid, BarChart, Joystick, MapIcon, Trash2, The
 import { useViz } from "../store/useVizStore";
 
 const nav = [
-  { to: "/monitoring",    label: "Monitoring",    Icon: LayoutGrid },
+  { to: "/monitoring", label: "Monitoring", Icon: LayoutGrid },
   { to: "/visualization", label: "Visualization", Icon: BarChart },
-  { to: "/manual_control",label: "Manual Control",Icon: Joystick },
-  { to: "/navigation",    label:"Navigation",     Icon: MapIcon },
-  { to: "/sensors",       label: "Sensors",       Icon: Thermometer },
+  { to: "/navigation", label:"Navigation", Icon: MapIcon },
+  { to: "/sensors", label: "Sensors", Icon: Thermometer },
 ];
 
 export default function SideBar() {

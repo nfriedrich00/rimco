@@ -10,6 +10,7 @@ import markerIcon from "leaflet/dist/images/marker-icon.png";
 import markerShadow from "leaflet/dist/images/marker-shadow.png";
 import { toast } from "react-toastify";
 import LoadingOverlay from "react-loading-overlay-ts";
+import Joystick from "../components/Joystick";
 
 const defaultIcon = L.icon({
   iconRetinaUrl: markerIcon2x,
@@ -376,6 +377,14 @@ export default function Navigation() {
             >
               Launch
             </button>
+          </div>
+
+          {/* -------------------------- JOYSTICK -------------------------- */}
+          <div className="bg-white shadow rounded-lg p-4 space-y-3">
+            <h3 className="font-semibold mb-3">Joystick</h3>
+            <div className="flex-1 flex items-center justify-center">
+              <Joystick />
+            </div>
           </div>
         </div>
       </div>
