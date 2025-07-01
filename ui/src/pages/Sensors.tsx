@@ -4,6 +4,14 @@ import { Switch } from "@headlessui/react";
 
 type WrapperNode = { name: string; state: string };
 
+function formatWrapperName(name: string): string {
+  const base = name
+    .replace(/^\/wrapper\//, "")
+    .replace(/_wrapper_node$/, "");
+  const spaced = base.replace(/_/g, " ");
+  return spaced.charAt(0).toUpperCase() + spaced.slice(1);
+}
+
 export default function Sensors() {
   const [nodes, setNodes] = useState<WrapperNode[]>([]);
   const api_url = import.meta.env.VITE_API_URL || "";
@@ -53,7 +61,7 @@ export default function Sensors() {
 
         return (
           <div key={n.name} className="rounded-lg shadow px-4 py-3 bg-white w-48">
-            <h3 className="text-sm mb-2 truncate">{n.name}</h3>
+            <h3 className="text-sm mb-2 truncate">{formatWrapperName(n.name)}</h3>
             <div className={`mx-auto h-8 w-8 rounded-full ${isActive ? "bg-ok" : "bg-danger"}`} />
             <p className="mt-1 text-center text-xs text-gray-600">
               {n.state.toUpperCase()}
