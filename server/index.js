@@ -367,7 +367,7 @@ app.post("/api/ros2", async (req, reply) => {
   const { cmd } = req.body;
   try {
     const { stdout, stderr } = await execPromise(
-      `docker exec -i rimco-rosbridge-1 bash -lc "source /opt/ros/jazzy/setup.bash && export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp && ros2 ${cmd}"`
+      `docker exec -i rimco-rosbridge-1 bash -lc "source /navigation/config/.sources && ros2 ${cmd}"`
     );
     console.log("🦄  ok:", stdout, stderr);
     reply.send({ ok: true, stdout, stderr });
@@ -382,7 +382,7 @@ app.post("/api/ros2-sim", async (req, reply) => {
   const { cmd } = req.body;
   try {
     const { stdout, stderr } = await execPromise(
-      `docker exec -i rimco-simulation bash -lc "source /home/ubuntu/ros2/dmc_11_ws/install/setup.bash && export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp && ros2 ${cmd}"`
+      `docker exec -i rimco-simulation bash -lc "source /home/ubuntu/.sources && ros2 ${cmd}"`
     );
     console.log("🦄  ok:", stdout, stderr);
     reply.send({ ok: true, stdout, stderr });
@@ -408,7 +408,7 @@ app.get("/api/ros2-action", async (req, reply) => {
     "rimco-rosbridge-1",
     "bash",
     "-lc",
-    `source /opt/ros/jazzy/setup.bash && export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp && ros2 ${cmd}`
+    `source /navigation/config/.sources && ros2 ${cmd}`
   ];
 
   const proc = spawn("docker", fullCmd);
@@ -476,7 +476,7 @@ app.post("/api/navigation/action-cancel", async (req, reply) => {
     // only kill clients for this action‐server inside the container
     await execPromise(
       `docker exec -i rimco-rosbridge-1 ` +
-      `bash -lc "source /opt/ros/jazzy/setup.bash && export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp && ros2 service call ${server}/_action/cancel_goal action_msgs/srv/CancelGoal"`
+      `bash -lc "source /navigation/config/.sources && ros2 service call ${server}/_action/cancel_goal action_msgs/srv/CancelGoal"`
     );
     reply.send({ ok: true });
   } catch (err) {
@@ -504,7 +504,7 @@ app.get("/api/lifecycle", async (req, reply) => {
     // run `ros2 lifecycle get` inside your rosbridge container
     const { stdout } = await execPromise(
       `docker exec -i rimco-rosbridge-1 bash -lc ` +
-      `"source /navigation/config/.source && ` +
+      `"source /navigation/config/.sources && ` +
       `ros2 lifecycle get 2>/dev/null | grep '^/wrapper/'"`,
       { timeout: 5000 }
     );
