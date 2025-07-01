@@ -9,7 +9,7 @@ export type CardConfig =
   | { type: "int-plot";     name: string; topic: string; unit: string }
   | { type: "string-value"; name: string; topic: string };
 
-interface VizState {
+export interface VizState {
   cards: CardConfig[];
   addCard    : (c: CardConfig) => void;
   updateCard : (idx: number, c: CardConfig) => void;
@@ -28,6 +28,17 @@ interface VizState {
 }
 
 export const useViz = create<VizState>()((set, get) => {
+  (async () => {
+    try {
+      const api = import.meta.env.VITE_API_URL!;
+      const res = await fetch(`${api}/api/settings`);
+      if (res.ok) {
+        const cfg = await res.json();
+        set({ settings: cfg });
+      }
+    } catch {}    
+  })();
+
   const setValue = (topic:string, data:unknown, stamp:number) => {
     set((s) => ({
       lastValue: {...s.lastValue, [topic]:{data,stamp}},

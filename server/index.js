@@ -30,6 +30,7 @@ await waitForRosbridge(9090);
 
 const DATA_DIR   = "./data";
 const CONFIG_DIR = "./config";
+const GENERAL_SETTINGS_FILE = path.join(CONFIG_DIR, "settings.json")
 const LAYOUTS_DIR = path.join(CONFIG_DIR, "layouts"); // visualization layouts
 const HISTORY_DIR = path.join(DATA_DIR, "history");   // history of specific topic values
 const LAST_FILE  = path.join(DATA_DIR, "last.json");  // last value for each topic
@@ -59,7 +60,7 @@ try {
 }
 
 let settings = { stale_ttl_ms: 10000 };
-try { settings = JSON.parse(await fs.readFile("./config/settings.json","utf8")); }
+try { settings = JSON.parse(await fs.readFile(GENERAL_SETTINGS_FILE,"utf8")); }
 catch { console.warn("settings.json missing, using defaults"); }
 
 /* ---------- map view tracks ---------- */
@@ -272,6 +273,20 @@ const app = Fastify()
 await app.register(cors, { origin: '*', });    // this allows to save layouts to the backend from the frontend
 await app.register(ws);                        // websocket is to make messages available to the frontend
 /* ------------------------------ API endpoints ----------------------------- */
+app.get("/api/settings", async (_, reply) => {
+  try {
+    const raw = await fs.readFile(CFG, "utf8");
+    reply.send(JSON.parse(raw));
+  } catch {
+    reply.send({ stale_ttl_ms: 10000 });
+  }
+});
+
+app.post("/api/settings", async (req, reply) => {
+  const cfg = req.body;
+  await fs.writeFile(CFG, JSON.stringify(cfg, null, 2));
+  reply.send(cfg);
+});
 /* ----------------- GET all filenames in ./config/layouts/ ----------------- */
 app.get("/api/layouts", async (req, reply) => {
   try {

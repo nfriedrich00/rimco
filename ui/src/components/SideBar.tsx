@@ -1,7 +1,8 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
-import { Menu, ChevronLeft, LayoutGrid, BarChart, Joystick, MapIcon, Trash2, Thermometer } from "lucide-react";
+import { Menu, ChevronLeft, LayoutGrid, BarChart, Joystick, MapIcon, Trash2, Thermometer, Settings } from "lucide-react";
 import { useViz } from "../store/useVizStore";
+import Modal from "./Modal";
 
 const nav = [
   { to: "/monitoring", label: "Monitoring", Icon: LayoutGrid },
@@ -11,12 +12,25 @@ const nav = [
 ];
 
 export default function SideBar() {
+  const api_url = import.meta.env.VITE_API_URL || '';
+
   const [open, setOpen] = useState(true);
   const location = useLocation();
+
+  const { settings, setSettings } = useViz();
+  const [ttl, setTtl] = useState(settings.stale_ttl_ms);
+  const [settingsOpen, setSettingsOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<"General"|"Navigation">("General");
+
+
   const onViz = location.pathname === "/visualization";
   const { saveLayout, loadLayout, cards, loadedLayout, layoutDirty } = useViz();
   const [layoutNames, setNames] = useState<string[]>([]);
-  const api_url = import.meta.env.VITE_API_URL || '';
+
+
+  useEffect(() => {
+    setTtl(settings.stale_ttl_ms);
+  }, [settings.stale_ttl_ms]);
 
   useEffect(()=>{
     fetch(`${api_url}/api/layouts`)
@@ -72,6 +86,7 @@ export default function SideBar() {
   };
 
   return (
+    <>
     <aside ref={panelRef}
       className={`relative h-screen flex flex-col transition-all
                   ${open?"w-60":"w-16"} bg-brand text-white`}>
@@ -93,9 +108,10 @@ export default function SideBar() {
           </NavLink>
         ))}
       </nav>
+      
 
       {/* -------- visualization actions -------- */}
-      {onViz && (
+      {onViz && open && (
         <>
           <div className="border-t my-3"/>
           {/* save */}
@@ -160,6 +176,96 @@ export default function SideBar() {
           )}
         </>
       )}
+
+      {/* -------- settings gear -------- */}
+      <div className="mt-auto px-2 pb-2">
+        <button
+          onClick={() => setSettingsOpen(true)}
+          className="w-full flex items-center justify-center py-3 hover:bg-accent/25 rounded"
+        >
+          <Settings size={20} />
+          {open && <span className="ml-2">Settings</span>}
+        </button>
+      </div>
     </aside>
+
+    {settingsOpen && (
+      <Modal onClose={() => setSettingsOpen(false)}>
+        <h2 className="text-xl font-semibold mb-4">Settings</h2>
+
+        {/* Tabs */}
+        <div className="flex space-x-4 border-b mb-4">
+          {(["General","Navigation"] as const).map((tab) => (
+            <button
+              key={tab}
+              onClick={() => setActiveTab(tab)}
+              className={`pb-2 ${
+                activeTab === tab
+                  ? "border-b-2 border-brand text-brand"
+                  : "text-gray-600 hover:text-brand"
+              }`}
+            >
+              {tab}
+            </button>
+          ))}
+        </div>
+
+        {/* General Tab */}
+        {activeTab === "General" && (
+          <div className="space-y-4">
+            <label className="block">
+              <span className="text-sm">Message TTL (ms)</span>
+              <input
+                type="number"
+                value={ttl}
+                onChange={(e) => setTtl(Number(e.target.value))}
+                className="mt-1 w-32 rounded border px-2 py-1"
+              />
+            </label>
+            {/* add further general options here */}
+          </div>
+        )}
+
+        {/* Navigation Tab */}
+        {activeTab === "Navigation" && (
+          <div className="space-y-4">
+            {/* 
+              TODO: wire these up to your tracks.json / useRimcoStore
+              For now just a placeholder
+            */}
+            <p className="text-sm text-gray-700">
+              Here you will be able to edit your map-view tracks, colors, max speed, etc.
+            </p>
+          </div>
+        )}
+
+        {/* Actions */}
+        <div className="flex justify-end space-x-2 mt-6">
+          <button
+            onClick={() => setSettingsOpen(false)}
+            className="px-4 py-1 rounded border"
+          >
+            Cancel
+          </button>
+          <button
+            onClick={async () => {
+              // 1) persist to backend
+              await fetch(`${api_url}/api/settings`, {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ stale_ttl_ms: ttl }),
+              });
+              // 2) update zustand store
+              setSettings({ stale_ttl_ms: ttl });
+              setSettingsOpen(false);
+            }}
+            className="px-4 py-1 rounded bg-brand text-white"
+          >
+            Save
+          </button>
+        </div>
+      </Modal>
+    )}
+   </>
   );
 }
