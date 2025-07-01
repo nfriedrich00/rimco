@@ -498,7 +498,7 @@ app.get("/api/waypoints", async (req, reply) => {
 
 
 // Sensors page
-// Get lifecyle nodes and states and autoconfigure
+// Get lifecyle nodes and states
 app.get("/api/lifecycle", async (req, reply) => {
   try {
     // run `ros2 lifecycle get` inside your rosbridge container
@@ -517,14 +517,6 @@ app.get("/api/lifecycle", async (req, reply) => {
       if (!m) continue;
       const [_, name, state] = m;
       nodes.push({ name, state });
-      // auto-configure any unconfigured nodes so they can be activated
-      if (state === "unconfigured") {
-        await execPromise(
-          `docker exec -i rimco-rosbridge-1 bash -lc ` +
-          `"source /navigation/config/.sources && ros2 lifecycle set ${name} configure"`,
-          { timeout: 5000 }
-        );
-      }
     }
     reply.send(nodes);
   } catch (err) {
