@@ -192,19 +192,20 @@ export const useRimco = create<RimcoState>((set, get) => {
   wrappers: {},
 
   setWrappers: (list) =>
-   set(() => {
+   set((s) => {
      const now = Date.now();
      const next: Record<string, WrapperEntry> = {};
      for (const { name, state } of list) {
-       next[name] = {
-         name,
-         state,
-         lastUpdate: now,
-         monitoring: null    // never auto‐link
-       };
-     }
-     return { wrappers: next };
-   }),
+      const prev = s.wrappers[name];      // grab existing mapping
+      next[name] = {
+        name,
+        state,
+        lastUpdate: now,
+        monitoring: prev?.monitoring ?? null  // preserve or init
+      };
+    }
+    return { wrappers: next };
+  }),
 
   setWrapperMapping: (wrapperName, monitoringName) =>
     set((s) => {

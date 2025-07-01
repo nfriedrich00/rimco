@@ -38,6 +38,7 @@ const MON_MAX_MBYTES = 5;
 const MAP_TRACKS_DIR = path.join(DATA_DIR, "tracks");
 const MAP_MAX_MBYTES = 10;
 const FLUSH_INTERVAL = 5000;                          // flush last.json every 5 seconds
+const WRAPPER_MAP_FILE = path.join(CONFIG_DIR, "wrapper_mapping.json");
 const SESSION_ID = new Date()
   .toISOString()
   .replace(/[:T]/g, "_")
@@ -65,6 +66,12 @@ catch { console.warn("settings.json missing, using defaults"); }
 let tracksCfg = {};
 try { tracksCfg = JSON.parse(await fs.readFile("./config/tracks.json","utf8")); }
 catch { console.warn("tracks.json missing - no tracks plotted"); }
+
+/* ---------- controlling/wrappers ---------- */
+let wrapperMapping = {}
+try {
+  wrapperMapping = JSON.parse(await fs.readFile(WRAPPER_MAP_FILE, "utf8"));
+} catch { /* ignore */ }
 
 /* ---------- rosbridge ---------- */
 const ros = new ROSLIB.Ros({ url: process.env.ROSBRIDGE_URL || "ws://rosbridge:9090" });
@@ -539,6 +546,20 @@ app.post("/api/lifecycle", async (req, reply) => {
     console.error("LIFECYCLE SET failed:", err);
     reply.code(500).send({ error: err.message });
   }
+});
+
+
+// GET /api/wrapper-mapping
+app.get("/api/wrapper-mapping", async (_, reply) => {
+  reply.send(wrapperMapping);
+});
+
+// POST /api/wrapper-mapping  body = { [wrapperName]: monitoringName|null }
+app.post("/api/wrapper-mapping", async (req, reply) => {
+  Object.assign(wrapperMapping, req.body);
+  await fs.writeFile(WRAPPER_MAP_FILE,
+                     JSON.stringify(wrapperMapping, null, 2));
+  reply.send({ ok: true, mapping: wrapperMapping });
 });
 
 function broadcast(obj) {
