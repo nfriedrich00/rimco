@@ -504,8 +504,7 @@ app.get("/api/lifecycle", async (req, reply) => {
     // run `ros2 lifecycle get` inside your rosbridge container
     const { stdout } = await execPromise(
       `docker exec -i rimco-rosbridge-1 bash -lc ` +
-      `"source /opt/ros/jazzy/setup.bash && ` +
-      `export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp && ` +
+      `"source /navigation/config/.source && ` +
       `ros2 lifecycle get 2>/dev/null | grep '^/wrapper/'"`,
       { timeout: 5000 }
     );
@@ -522,7 +521,7 @@ app.get("/api/lifecycle", async (req, reply) => {
       if (state === "unconfigured") {
         await execPromise(
           `docker exec -i rimco-rosbridge-1 bash -lc ` +
-          `"source /opt/ros/jazzy/setup.bash && export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp && ros2 lifecycle set ${name} configure"`,
+          `"source /navigation/config/.sources && ros2 lifecycle set ${name} configure"`,
           { timeout: 5000 }
         );
       }
@@ -540,7 +539,7 @@ app.post("/api/lifecycle", async (req, reply) => {
   try {
     await execPromise(
       `docker exec -i rimco-rosbridge-1 bash -lc ` +
-      `"source /opt/ros/jazzy/setup.bash && export RMW_IMPLEMENTATION=rmw_cyclonedds_cpp && ros2 lifecycle set ${name} ${action}"`,
+      `"source /navigation/config/.sources && ros2 lifecycle set ${name} ${action}"`,
       { timeout: 5000 }
     );
     reply.send({ ok: true });
