@@ -1,4 +1,4 @@
-import { useEffect, useCallback, useState } from "react";
+import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 import { Switch } from "@headlessui/react";
 import { useViz } from "../store/useVizStore";
@@ -18,6 +18,9 @@ export default function Sensors() {
   const api_url = import.meta.env.VITE_API_URL || "";
   const ttl = useViz((s) => s.settings.stale_ttl_ms);
 
+  const [editingWrapper, setEditingWrapper] = useState<WrapperEntry | null>(null);
+  const [newMonitoring, setNewMonitoring] = useState<string>("");
+
   const wrapperMap = useRimco((s) => s.wrappers);
   const components = useRimco((s) => s.components);
   const clock = useRimco((s) => s.clock);
@@ -32,6 +35,20 @@ export default function Sensors() {
     2: "bg-danger",
     3: "bg-warn",
   };
+
+  // close modal on Escape
+  useEffect(() => {
+    if (!editingWrapper) return;
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setEditingWrapper(null);
+      }
+    };
+    document.addEventListener("keydown", handleEsc);
+    return () => {
+      document.removeEventListener("keydown", handleEsc);
+    };
+  }, [editingWrapper]);
 
 
   useEffect(() => {
@@ -127,7 +144,10 @@ export default function Sensors() {
           <div
             key={w.name}
             className="rounded-lg shadow bg-white w-48 p-4 space-y-2"
-            onClick={() => linkMonitoring(w)}
+            onClick={() => {
+              setEditingWrapper(w);
+              setNewMonitoring(w.monitoring || "");
+            }}
           >
             <h3 className="text-sm font-semibold truncate">{formatWrapperName(w.name)}</h3>
             {dot}
@@ -138,6 +158,7 @@ export default function Sensors() {
               <Switch
                 checked={isActive}
                 onChange={() => handleToggle(w)}
+                onClick={(e) => e.stopPropagation()}
                 className={`${
                   isActive ? "bg-brand" : "bg-gray-300"
                 } relative inline-flex items-center h-6 w-11 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand`}
@@ -152,6 +173,59 @@ export default function Sensors() {
           </div>
         );
       })}
+ 
+      {/* Modal for editing wrapper→monitoring mapping */}
+      {editingWrapper && (
+        <div
+          className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+          onClick={() => setEditingWrapper(null)}
+        >          
+          <div
+            className="bg-white p-6 rounded shadow-lg w-80"
+            onClick={(e) => e.stopPropagation()}
+          >            <h2 className="text-lg font-semibold mb-4">
+              Link monitoring for {formatWrapperName(editingWrapper.name)}
+            </h2>
+            <select
+              className="w-full mb-4 border rounded px-2 py-1"
+              value={newMonitoring}
+              onChange={(e) => setNewMonitoring(e.target.value)}
+            >
+              <option value="">-- none --</option>
+              {Object.keys(components).map((mon) => (
+                <option key={mon} value={mon}>
+                  {mon}
+                </option>
+              ))}
+            </select>
+            <div className="flex justify-end space-x-2">
+              <button
+                onClick={() => setEditingWrapper(null)}
+                className="px-3 py-1 rounded border"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={async () => {
+                  // 1) update store
+                  setMapping(editingWrapper.name, newMonitoring || null);
+                  // 2) persist to backend
+                  await fetch(`${api_url}/api/wrapper-mapping`, {
+                    method: "POST",
+                    headers: { "Content-Type": "application/json" },
+                    body: JSON.stringify({ [editingWrapper.name]: newMonitoring || null }),
+                  });
+                  // 3) close modal
+                  setEditingWrapper(null);
+                }}
+                className="px-3 py-1 rounded bg-brand text-white"
+              >
+                Save
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
