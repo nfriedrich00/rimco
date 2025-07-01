@@ -1,5 +1,6 @@
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
+import { Switch } from "@headlessui/react";
 
 type WrapperNode = { name: string; state: string };
 
@@ -48,34 +49,30 @@ export default function Sensors() {
   return (
     <div className="p-6 flex flex-wrap gap-4">
       {nodes.map((n) => {
-        const color =
-          n.state === "active"
-            ? "bg-ok"
-            : n.state === "inactive"
-            ? "bg-danger"
-            : "bg-gray-300";
+        const isActive = n.state === "active";
+
         return (
-          <div
-            key={n.name}
-            className="rounded-lg shadow px-4 py-3 bg-white w-48"
-          >
+          <div key={n.name} className="rounded-lg shadow px-4 py-3 bg-white w-48">
             <h3 className="text-sm mb-2 truncate">{n.name}</h3>
-            <div className={`mx-auto h-8 w-8 rounded-full ${color}`} />
+            <div className={`mx-auto h-8 w-8 rounded-full ${isActive ? "bg-ok" : "bg-danger"}`} />
             <p className="mt-1 text-center text-xs text-gray-600">
               {n.state.toUpperCase()}
             </p>
-            <div className="mt-2 flex justify-center">
-              <label className="inline-flex items-center space-x-2">
-                <input
-                  type="checkbox"
-                  className="form-checkbox h-5 w-5 text-green-600"
-                  checked={n.state === "active"}
-                  onChange={() => handleToggle(n)}
+
+            <div className="mt-3 flex justify-center">
+              <Switch
+                checked={isActive}
+                onChange={() => handleToggle(n)}
+                className={`${
+                  isActive ? "bg-brand" : "bg-gray-300"
+                } relative inline-flex items-center h-6 rounded-full w-11 transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand`}
+              >
+                <span
+                  className={`${
+                    isActive ? "translate-x-6" : "translate-x-1"
+                  } inline-block w-4 h-4 transform bg-white rounded-full transition-transform`}
                 />
-                <span className="text-sm">
-                  {n.state === "active" ? "On" : "Off"}
-                </span>
-              </label>
+              </Switch>
             </div>
           </div>
         );
