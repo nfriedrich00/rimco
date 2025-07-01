@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useCallback } from "react";
 import { toast } from "react-toastify";
 import { Switch } from "@headlessui/react";
 import { useViz } from "../store/useVizStore";
@@ -29,6 +29,7 @@ export default function Sensors() {
   const [editingWrapper, setEditingWrapper] = useState<WrapperEntry | null>(null);
   const [newMonitoring, setNewMonitoring] = useState<string>("");
 
+  const [cooldowns, setCooldowns] = useState<Record<string, number>>({});
   const wrapperMap = useRimco((s) => s.wrappers);
   const components = useRimco((s) => s.components);
   const clock = useRimco((s) => s.clock);
@@ -124,9 +125,14 @@ export default function Sensors() {
     });
   };
 
-  const handleToggle = (w: WrapperEntry) => {
+  const handleToggle = useCallback((w: WrapperEntry) => {
+    const now = Date.now();
+    const expires = cooldowns[w.name] || 0;
+    if (now < expires) return;
     const nextActive = w.state !== "active";
     const action = nextActive ? "activate" : "deactivate";
+    setCooldowns((c) => ({ ...c, [w.name]: now + 10_000 }));
+
     toast
       .promise(
         fetch(`${api_url}/api/lifecycle`, {
@@ -142,8 +148,8 @@ export default function Sensors() {
           error: `Failed to ${action} ${w.name}`,
         },
         { autoClose: 5000 }
-      );
-  };
+      )
+  }, [api_url, setWrappers, wrappers, cooldowns]);
 
   return (
     <div className="p-6 flex flex-wrap gap-4">
@@ -190,6 +196,7 @@ export default function Sensors() {
                 checked={isActive}
                 onChange={() => handleToggle(w)}
                 onClick={(e) => e.stopPropagation()}
+                disabled={cooldowns[w.name] !== undefined && Date.now() < cooldowns[w.name]}
                 className={`${
                   isActive ? "bg-brand" : "bg-gray-300"
                 } relative inline-flex items-center h-6 w-11 rounded-full transition-colors focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-brand`}
