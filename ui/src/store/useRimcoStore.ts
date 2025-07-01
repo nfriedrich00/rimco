@@ -12,6 +12,9 @@ const getDistance = (a: LatLngLiteral, b: LatLngLiteral): number => {
   return R * 2 * Math.atan2(Math.sqrt(aa), Math.sqrt(1-aa))
 }
 
+const normalize = (s: string) =>
+  s.toLowerCase().replace(/[^a-z0-9]/g, "");
+
 type TailPoint = [number, number];  // lat, lon
 
 interface TrackState {
@@ -22,7 +25,7 @@ interface TrackState {
   displayName: string;
 }
 
-interface RimcoState {
+export interface RimcoState {
   clock: number; // ms unix, used to trigger re-renders
   /* new map */
 
@@ -48,12 +51,23 @@ interface RimcoState {
   pushTrack: (name: string, pos?: LatLngLiteral, yaw?: number) => void;
   setTrackShow: (name: string, v: boolean) => void;
   clearTracks: () => void;
+
+  wrappers: Record<string, WrapperEntry>;
+  setWrappers: (raw: { name: string; state: string }[]) => void;
+  setWrapperMapping: (wrapperName: string, monitoringName: string | null) => void;
 }
 
 export interface ComponentEntry {
   name: string;
   level: number;      // 0..3
   lastUpdate: number; // ms unix
+}
+
+export interface WrapperEntry {
+  name: string;
+  state: string;
+  lastUpdate: number; // ms unix
+  monitoring: string | null;
 }
 
 export const useRimco = create<RimcoState>((set, get) => {
@@ -172,4 +186,36 @@ export const useRimco = create<RimcoState>((set, get) => {
         [name]: { name, level, lastUpdate: stamp },
         },
     })),
+
+
+  /* ------------------------------ controlling ----------------------------- */
+  wrappers: {},
+
+  setWrappers: (list) =>
+   set(() => {
+     const now = Date.now();
+     const next: Record<string, WrapperEntry> = {};
+     for (const { name, state } of list) {
+       next[name] = {
+         name,
+         state,
+         lastUpdate: now,
+         monitoring: null    // never auto‐link
+       };
+     }
+     return { wrappers: next };
+   }),
+
+  setWrapperMapping: (wrapperName, monitoringName) =>
+    set((s) => {
+      const w = s.wrappers[wrapperName];
+      if (!w) return {};
+      return {
+        wrappers: {
+          ...s.wrappers,
+          [wrapperName]: { ...w, monitoring: monitoringName },
+        },
+      };
+    }),
+
 };})
