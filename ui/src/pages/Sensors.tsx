@@ -204,9 +204,22 @@ export default function Sensors() {
         } else {
           dotColor = "bg-black";      // no mapping
         }
+
+        // tooltip text by color
+        let dotTooltip = "Stale: There is no information about this component.";
+        if (dotColor.includes("bg-danger")) {
+          dotTooltip = "Error: This component doesn't meet the required frequency.";
+        } else if (dotColor.includes("bg-warn")) {
+          dotTooltip = "Warn: This component hasn't been turned on yet.";
+        } else if (dotColor.includes("bg-ok")) {
+          dotTooltip = "OK: This component works fine.";
+        }
+
          const dot = (
            <div
-             className={`mx-auto h-8 w-8 rounded-full ${dotColor}`}
+            className={`mx-auto h-8 w-8 rounded-full ${dotColor}`}
+            title={dotTooltip}
+            aria-label={dotTooltip}
            />
          );
 
@@ -214,6 +227,8 @@ export default function Sensors() {
           <div
             key={w.name}
             className="rounded-lg shadow bg-white w-48 p-4 space-y-2"
+            title={dotTooltip}
+            aria-label={dotTooltip}
             onClick={() => {
               setEditingWrapper(w);
               setNewMonitoring(w.monitoring || "");
