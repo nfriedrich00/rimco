@@ -28,7 +28,7 @@ I prepared a docker image for the simulation container and shared the image as a
 First, load the image from the tar file and then start the container.
 
 ```bash
-docker load -i ros-simulation.tar
+docker load -i rimco-simulation-image.tar
 
 docker run -itd --name rimco-simulation --network host nfriedrich/rimco-simulation:latest
 ```
