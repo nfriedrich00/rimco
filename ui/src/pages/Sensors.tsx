@@ -159,19 +159,18 @@ export default function Sensors() {
 
     const restartPromise = async () => {
       // deactivate
-      let res = await fetch(`${api_url}/api/lifecycle`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: w.name, action: "deactivate" }),
-      });
-      if (!res.ok) throw new Error("deactivate failed");
-      // activate
-      res = await fetch(`${api_url}/api/lifecycle`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: w.name, action: "activate" }),
-      });
-      if (!res.ok) throw new Error("activate failed");
+      const seq = w.state === "active"
+        ? ["deactivate", "activate"]
+        : ["activate", "deactivate"];
+
+      for (const action of seq) {
+        const res = await fetch(`${api_url}/api/lifecycle`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ name: w.name, action }),
+        });
+        if (!res.ok) throw new Error(`${action} failed`);
+      }
     };
 
     toast.promise(
