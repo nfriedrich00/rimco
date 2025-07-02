@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { toast } from "react-toastify";
 import { Switch } from "@headlessui/react";
+import { RefreshCw as RestartIcon } from "lucide-react";
 import { useViz } from "../store/useVizStore";
 import { useRimco } from "../store/useRimcoStore";
 import type { WrapperEntry } from "../store/useRimcoStore";
@@ -151,6 +152,39 @@ export default function Sensors() {
       )
   }, [api_url, setWrappers, wrappers, cooldowns]);
 
+  const handleRestart = useCallback((w: WrapperEntry) => {
+    const now = Date.now();
+    if (now < (cooldowns[w.name] || 0)) return;
+    setCooldowns((c) => ({ ...c, [w.name]: now + 10_000 }));
+
+    const restartPromise = async () => {
+      // deactivate
+      let res = await fetch(`${api_url}/api/lifecycle`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: w.name, action: "deactivate" }),
+      });
+      if (!res.ok) throw new Error("deactivate failed");
+      // activate
+      res = await fetch(`${api_url}/api/lifecycle`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name: w.name, action: "activate" }),
+      });
+      if (!res.ok) throw new Error("activate failed");
+    };
+
+    toast.promise(
+      restartPromise(),
+      {
+        pending: `Restarting ${w.name}…`,
+        success: `${w.name} restarted`,
+        error: `Failed to restart ${w.name}`,
+      },
+      { autoClose: 5000 }
+    );
+  }, [api_url, cooldowns]);
+
   return (
     <div className="p-6 flex flex-wrap gap-4">
       {wrappers.map((w) => {
@@ -207,6 +241,15 @@ export default function Sensors() {
                   } inline-block w-4 h-4 transform bg-white rounded-full transition-transform`}
                 />
               </Switch>
+              <button
+                onClick={(e) => { e.stopPropagation(); handleRestart(w); }}
+                disabled={cooldowns[w.name] !== undefined && Date.now() < cooldowns[w.name]}
+                title={`Restart ${formatWrapperName(w.name)}`}
+                aria-label={`Restart ${w.name}`}
+                className="ml-2 p-1 rounded hover:bg-red-100 disabled:opacity-50"
+              >
+                <RestartIcon size={16} className="text-red-500 hover:text-red-700" />
+              </button>
             </div>
           </div>
         );
