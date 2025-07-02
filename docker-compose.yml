@@ -37,6 +37,7 @@ services:
       - ./ui:/app
       - ./config:/app/config
       - ./data:/app/data
+    command: sh -c "npm install && npm run dev -- --host"
     network_mode: host
     depends_on:
       - rosbridge
