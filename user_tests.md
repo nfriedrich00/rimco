@@ -4,8 +4,6 @@
 Thank you for participating in this user study.
 I would appreciate it, if you could answer some questions after experiencing the web-app.
 
-## Description
-
 Start by exploring the web-app and its functionality.
 You can explore the site by yourself or you can stick to the tasks roadmap below, which gives you an overview over the main functions.
 
@@ -26,7 +24,8 @@ docker compose up --build
 * Load the simulation image
 * Start the simulation container
 
-I prepared a docker image for the simulation container and shared the image as .tar. First, load the image from the tar file and then start the container.
+I prepared a docker image for the simulation container and shared the image as a .tar.
+First, load the image from the tar file and then start the container.
 
 ```bash
 docker load -i ros-simulation.tar
@@ -35,7 +34,8 @@ docker run -itd --name rimco-simulation --network host nfriedrich/rimco-simulati
 ```
 
 You might also want to add a mapbox api key to the `ui/.env` file.
-Otherwise it will use the openstreetmap tiles server, which only supports a lower max zoom level. DM me for personalized api key.
+Otherwise it will use the osm tiles server, which only supports a lower max zoom level.
+DM me for personalized api key.
 
 Then create the `ui/.env` file and add `VITE_MAPBOX_TOKEN=pk.eyJ1Ij...` to it.
 
@@ -49,20 +49,21 @@ You can follow these tasks to explore the main functions of the UI by trying out
 
 #### Prepare the software
 
-Start with starting all necessary sensors and components for the navigation and other desired sensors.
+Start with turning on all necessary sensors and components for the navigation as well as other desired sensors.
 
 <details>
 <summary>Click for details</summary>
 
 Start the simulation environment by following these steps:
 
-1. The simulation should depict the real robots behavior.
+1. The simulation should reflect the robot's behavior.
 This means, the necessary sensors and the localization start automatically.
 Not the navigation.
 Some sensors may fail to start or don't work as intended, in which case we need to restart them manually.
-This would be the job of the monitoring or launch system on the robot, NOT the job the UI to do it automatically.
+This would be the job of the monitoring or launch system on the robot, NOT the job of the UI to do it automatically.
+But we can restart it from the UI.
 
-2. For the navigation we need the gnss sensor, in the case of the real robot also the livox sensors for at least one reading, and the localization.
+2. For the navigation we need the gnss sensor, in the case of the real robot the livox sensors for at least one reading, and the localization.
 
 </details>
 
@@ -73,30 +74,30 @@ Before driving outside, let's check the battery status, which is published on th
 #### Let the robot drive
 
 When everything is fine, start the demo route for the waypoint following.
-For this to work, we first need to manually move the robot near the starting point and orientation (this is a limitation with the robot's software, not the UI).
+For this to work, we first need to manually move the robot to near the starting point and orientation (this is a limitation with the robot's software, not the UI).
 
-While inside, move the robot manually outside to prevent obstacles or triggering the emergency stop.
+While inside, steer the robot manually to the door to prevent obstacles or triggering the emergency stop.
 
-On the outside we can rely on the navigation to drive the robot to the starting point, if we can manually pick a goal without any obstacles on the way.
-We could also keep steering manually.
+When outside, we can rely on the navigation to drive the robot to the starting point, as long as there are no obstacles on the route.
+You could pick a goal or keep steering manually.
 
-The image below shows the starting position for the demo route. For the navigation to work, the robot should be facing roughly to the south or east.
+The image below shows the starting position for the demo route.
+For the navigation to work, the robot should be facing roughly to the south or east.
 
 <details>
 <summary>Click for additional infos</summary>
 
-This is because the nav2 controller doesn'find a valid route if there is a significant deviation between the orientation of the robot and the path.
+This is because the nav2 controller doesn't find a valid route if there is a significant deviation between the orientation of the robot and the path.
 We can start the navigation anyways but it might never succeeds, in which case we could just restart the navigation component.
 
 </details>
 
 ![Demo start point](./demo_start.png)
 
-Before driving outside, let's check the battery status, which is published on the `battery_percentage` topic.
 
 When we are near the the starting point for the demo route, we can launch the waypoint following.
 There is another demo route near Haus Formgebung, which you could try out as well.
-However, this probably won't work until the robot is near the starting point, which you could find without help just by using the UI.
+However, this probably won't work until the robot is near the starting point, which you could easily find without help just by using the UI.
 
 
 ## Feedback
