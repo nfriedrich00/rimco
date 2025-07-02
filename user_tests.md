@@ -11,6 +11,19 @@ You can explore the site by yourself or you can stick to the tasks roadmap below
 
 ### Setting up the environement
 
+I prepared a docker image for the simulation container and shared the image as a .tar.
+Download the image from the [ificloud](https://ificloud.xsitepool.tu-freiberg.de/index.php/f/22320266) as well as the navigation folder (it contains waypoints and parameters).
+Place the navigation folder in your home directory or modify the docker-compose.yaml accordingly.
+Then load the image from the tar file and start the container.
+
+```bash
+docker load -i rimco-simulation-image.tar
+
+docker run -itd --name rimco-simulation --network host nfriedrich/rimco-simulation:latest
+```
+:warning: Setting the name is very important as it is used in a "little workaround" to fix a problem.
+
+
 * Clone this project
 * Start the UI server
 
@@ -24,14 +37,6 @@ docker compose up --build
 * Load the simulation image
 * Start the simulation container
 
-I prepared a docker image for the simulation container and shared the image as a .tar.
-First, load the image from the tar file and then start the container.
-
-```bash
-docker load -i rimco-simulation-image.tar
-
-docker run -itd --name rimco-simulation --network host nfriedrich/rimco-simulation:latest
-```
 
 You might also want to add a mapbox api key to the `ui/.env` file.
 Otherwise it will use the osm tiles server, which only supports a lower max zoom level.
