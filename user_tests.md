@@ -40,12 +40,8 @@ docker compose up --build
 
 You might also want to add a mapbox api key to the `ui/.env` file.
 Otherwise it will use the osm tiles server, which only supports a lower max zoom level.
-DM me for personalized api key.
-
-Then create the `ui/.env` file and add `VITE_MAPBOX_TOKEN=pk.eyJ1Ij...` to it.
 You can find a `.env` file in the downloaded folder at `navigation/config/.env`.
-Place this file in `rimco/ui/` folder to use the higher resolution map tiles.
-Just please don't exceed my 200k free requests.
+Place this file at `rimco/ui/.env` to use the higher resolution map tiles and restart the docker containers.
 
 ## Exploring the UI
 
