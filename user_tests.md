@@ -73,7 +73,7 @@ But we can restart it from the UI.
 
 #### Visualize some data
 
-Before driving outside, let's check the battery status, which is published on the `battery_percentage` topic.
+Before driving outside, let's check the battery status, which is published on the `battery/percentage` topic.
 
 #### Let the robot drive
 
