@@ -64,6 +64,11 @@ export default function Evaluation() {
     Array(QED_PAIRS.length).fill(null)
   );
   const handleDownload = () => {
+    if (sus.some(v => v === null) || qed.some(v => v === null)) {
+      if (!window.confirm("There are unanswered questions. Are you sure you want to download incomplete results? (I won't stop you)")) {
+        return;
+      }
+    }
     const header = ["Question Type", "Question", "Number", "Answer"];
     const susRows = SUS_QUESTIONS.map((q, i) => [
       "SUS",
@@ -81,6 +86,11 @@ export default function Evaluation() {
   };
 
   const handleEmail = () => {
+    if (sus.some(v => v === null) || qed.some(v => v === null)) {
+      if (!window.confirm("There are unanswered questions. Are you sure you want to send incomplete results? (I won't stop you)")) {
+        return;
+      }
+    }
     const id = prompt("Please enter an identifier (your name)");
     if (id === null || id.trim() === "") {
       return;
