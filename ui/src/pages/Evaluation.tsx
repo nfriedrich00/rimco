@@ -112,7 +112,7 @@ export default function Evaluation() {
       <h1 className="text-2xl font-semibold">Evaluation</h1>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-medium">System Usability Scale (SUS)</h2>
+        <h2 className="text-xl font-medium">System Usability Scale (SUS) (1: I don't agree at all, 5: I fully agree)</h2>
         {SUS_QUESTIONS.map((q, i) => (
           <div key={i} className="space-y-1">
             <p className="text-sm">{i + 1}. {q}</p>
@@ -139,7 +139,7 @@ export default function Evaluation() {
       </section>
 
       <section className="space-y-4">
-        <h2 className="text-xl font-medium">Qualitative Evaluation (QED)</h2>
+        <h2 className="text-xl font-medium">User Experience Questionnaire (UEQ)</h2>
         <div className="overflow-x-auto">
           <div
             className="
@@ -147,6 +147,7 @@ export default function Evaluation() {
               grid
               grid-cols-[8rem_repeat(7,2rem)_8rem]
               gap-x-2
+              gap-y-4
               text-xs
               text-gray-600
             "
@@ -179,6 +180,7 @@ export default function Evaluation() {
                   </div>
                 ))}
                 <div className="whitespace-nowrap text-gray-700">{right}</div>
+                <hr className="col-span-full border-gray-300" />
               </Fragment>
             ))}
           </div>
